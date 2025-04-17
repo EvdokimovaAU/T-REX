@@ -57,4 +57,7 @@ public:
 	void update(); // îáíîâëåíèå èãðû
 	void render(); // îòðèñîâêà ãðàôèêè
 	void initPlayer();
+	string getLocationName(int screenIndex) const;
+	void drawUI();
+	
 };

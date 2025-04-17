@@ -23,17 +23,16 @@ private:
 	sf::RenderWindow* window; // îêíî (óêàçàòåëü, òê ñîçäàåì ÷åðåç new)
 	sf::Event event;
 	sf::VideoMode videoMode;
-
+	std::vector<sf::Texture> backgroundTextures;
+	std::vector<sf::Sprite> backgroundSprites;
+	
 
 	// ïåðñîíàæ
 	sf::Texture playerTexture; // òåêñòóðà ïåðñîíàæà
 	sf::Sprite playerSprite; // ñïðàéò 
 	float moveSpeed = 5.0f; // ñêîðîñòü ïåðåìåùåíèÿ
 
-	// ôîíû
-	vector<sf::Texture> backgroundTextures;
-	vector<sf::Sprite> backgroundSprites;
-
+	void initBackgrounds(); // Добавляем объявление метода
 	// ñèñòåìà ýêðàíîâ
 	int currentScreen;
 	void initScreens(); // èíèöèàëèçàÿ ýêðàíîâ è ïåðåõîäîâ
@@ -44,7 +43,7 @@ private:
 	// èíèöèàëèçàöèÿ
 	void initaializeVariables();
 	void initWindow();
-	void loadBackgrounds();
+	
 
 public:
 	Game();

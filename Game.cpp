@@ -7,6 +7,7 @@ Game::Game()
 	this->initWindow();
 	this->initPlayer();
 	this->initScreens();
+	this->initBackgrounds();
 
 	currentScreen = 0;
 	previousPositions.reserve(10);  // Зарезервируем память для 10 позиций
@@ -28,8 +29,8 @@ void Game::initaializeVariables()
 // создание окна
 void Game::initWindow()
 {
-	this->videoMode.height = 600;
-	this->videoMode.width = 800;
+	this->videoMode.height = 577;
+	this->videoMode.width = 1024;
 	// задаем окно
 	this->window = new sf::RenderWindow(this->videoMode, "Paleontolog", sf::Style::Default);
 
@@ -94,6 +95,34 @@ void Game::initPlayer()
 }
 
 
+
+void Game::initBackgrounds()
+{
+	backgroundTextures.resize(6);
+	backgroundSprites.resize(6);
+
+	// Загрузка текстур для каждого экрана
+	std::vector<std::string> texturePaths = {
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/baza.jpg",  // Главный экран
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/shop.jpg",  // Левый экран
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/museum.jpg",  // Правый экран
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/desert.jpg",  // Верхний левый экран
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/jungle.jpg",  // Верхний правый экран
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/arctica.jpg"   // Нижний экран
+	};
+
+	for (int i = 0; i < 6; ++i) {
+		if (!backgroundTextures[i].loadFromFile(texturePaths[i])) {
+			std::cerr << "Failed to load background " << i << " from: " << texturePaths[i] << "\n";
+			// Создаём красный квадрат как заглушку
+			sf::Image placeholder;
+			placeholder.create(800, 600, sf::Color::Red);
+			backgroundTextures[i].loadFromImage(placeholder);
+		}
+		backgroundSprites[i].setTexture(backgroundTextures[i]);
+	}
+
+}
 
 // реализация системы экранов
 void Game::initScreens()
@@ -229,17 +258,13 @@ void Game::update()
 // отрисовка игры
 void Game::render()
 {
-	window->clear();
+	this->window->clear();
 
-	// Добавляем проверку границ массива
-	if (!backgroundSprites.empty() && currentScreen >= 0 && currentScreen < backgroundSprites.size()) {
-		window->draw(backgroundSprites[currentScreen]);
-	}
-	else {
-		// Резервный фон, если что-то пошло не так
-		window->clear(sf::Color::Blue);
-	}
+	// Отрисовка фона текущего экрана
+	this->window->draw(backgroundSprites[currentScreen]);
 
-	window->draw(playerSprite);
-	window->display();
+	// Отрисовка персонажа
+	this->window->draw(this->playerSprite);
+
+	this->window->display();
 }

@@ -43,6 +43,7 @@ private:
 	// èíèöèàëèçàöèÿ
 	void initaializeVariables();
 	void initWindow();
+	sf::Clock clock;  // Таймер для расчета deltaTime
 	
 
 public:

@@ -8,7 +8,7 @@ Game::Game()
 	this->initPlayer();
 	this->initScreens();
 	this->initBackgrounds();
-
+	moveSpeed = 8.0f;
 	currentScreen = 0;
 	previousPositions.reserve(10);  // Зарезервируем память для 10 позиций
 
@@ -91,7 +91,7 @@ void Game::initPlayer()
 	);
 
 	playerSprite.setScale(scale);
-	playerSprite.setPosition(400, 300);
+	playerSprite.setPosition(1024 / 2 - 125, 577 / 2 - 85); // Центр минус половина размеров спрайта
 }
 
 
@@ -120,6 +120,10 @@ void Game::initBackgrounds()
 			backgroundTextures[i].loadFromImage(placeholder);
 		}
 		backgroundSprites[i].setTexture(backgroundTextures[i]);
+
+		float scaleX = 1024.f / backgroundTextures[i].getSize().x;
+		float scaleY = 577.f / backgroundTextures[i].getSize().y;
+		backgroundSprites[i].setScale(scaleX, scaleY);
 	}
 
 }
@@ -130,78 +134,74 @@ void Game::initScreens()
 	screens.resize(6);
 
 	/// ГЛАВНЫЙ ЭКРАН (0) ///
-	// Левый переход (центр) → экран 1
+	// Левый переход в магазин (увеличил высоту)
 	screens[0].emplace_back(
-		sf::FloatRect(0, 250, 40, 200),   // Зона перехода слева
-		sf::Vector2f(760, 300),           // Появление на экране 1
+		sf::FloatRect(0, 150, 80, 300),    // Узкая (40px) но высокая (300px) зона
+		sf::Vector2f(940, 300),            // Появление справа
 		1
 	);
 
-	// Правый переход (центр) → экран 2
+	// Правый переход в музей (увеличил высоту)
 	screens[0].emplace_back(
-		sf::FloatRect(760, 250, 40, 200), // Зона перехода справа
-		sf::Vector2f(40, 300),            // Появление на экране 2
+		sf::FloatRect(944, 150, 80, 300),  // Узкая (40px) но высокая (300px) зона
+		sf::Vector2f(80, 300),             // Появление слева
 		2
 	);
 
-	// Нижний переход → экран 5
+	// Нижний переход (широкий)
 	screens[0].emplace_back(
-		sf::FloatRect(350, 580, 100, 20), // Зона перехода внизу
-		sf::Vector2f(400, 20),            // Появление на экране 5
+		sf::FloatRect(462, 557, 100, 20),  // Широкая нижняя зона (324px)
+		sf::Vector2f(462, 20),             // Появление сверху
 		5
 	);
 
-	// Верхний левый угол → экран 3
+	// Верхний левый (широкий)
 	screens[0].emplace_back(
-		sf::FloatRect(0, 0, 90, 90),      // Зона перехода
-		sf::Vector2f(710, 510),           // Появление на экране 3
+		sf::FloatRect(100, 0, 150, 50),    // Широкая верхняя зона (300px)
+		sf::Vector2f(774, 527),            // Появление снизу
 		3
 	);
 
-	// Верхний правый угол → экран 4
+	// Верхний правый (широкий)
 	screens[0].emplace_back(
-		sf::FloatRect(710, 0, 90, 90),    // Зона перехода
-		sf::Vector2f(90, 510),            // Появление на экране 4
+		sf::FloatRect(774, 0, 150, 50),    // Широкая верхняя зона (300px)
+		sf::Vector2f(100, 527),            // Появление снизу
 		4
 	);
 
-	/// ЛЕВЫЙ ЭКРАН (1) ///
-	// Возврат в основной - справа (зеркально главному экрану)
+	/// ОБРАТНЫЕ ПЕРЕХОДЫ ///
+	// Магазин (1) → главный
 	screens[1].emplace_back(
-		sf::FloatRect(760, 250, 40, 200), // Зона перехода справа
-		sf::Vector2f(40, 300),            // Появление на экране 0 (где был вход на экран 1)
+		sf::FloatRect(940, 150, 80, 300),  // Зеркальная зона
+		sf::Vector2f(80, 300),
 		0
 	);
-
-	/// ПРАВЫЙ ЭКРАН (2) ///
-	// Возврат в основной - слева (зеркально главному экрану)
+	
+	// Музей (2) → главный
 	screens[2].emplace_back(
-		sf::FloatRect(0, 250, 40, 200),   // Зона перехода слева
-		sf::Vector2f(760, 300),           // Появление на экране 0 (где был вход на экран 2)
+		sf::FloatRect(0, 150, 80, 300),
+		sf::Vector2f(940, 300),
 		0
 	);
 
-	/// ВЕРХНИЙ ЛЕВЫЙ ЭКРАН (3) ///
-	// Возврат в основной - внизу справа (зеркально главному экрану)
+	// Пустыня (3) → главный
 	screens[3].emplace_back(
-		sf::FloatRect(710, 510, 90, 90),  // Зона перехода внизу справа
-		sf::Vector2f(90, 90),             // Появление на экране 0 (где был вход на экран 3)
+		sf::FloatRect(300, 520, 400, 50),  // Широкая нижняя зона
+		sf::Vector2f(350, 50),
 		0
 	);
 
-	/// ВЕРХНИЙ ПРАВЫЙ ЭКРАН (4) ///
-	// Возврат в основной - внизу слева (зеркально главному экрану)
+	// Джунгли (4) → главный
 	screens[4].emplace_back(
-		sf::FloatRect(0, 510, 90, 90),   // Зона перехода внизу слева
-		sf::Vector2f(710, 90),            // Появление на экране 0 (где был вход на экран 4)
+		sf::FloatRect(100, 527, 150, 50),  // Широкая нижняя зона
+		sf::Vector2f(774, 50),
 		0
 	);
 
-	/// НИЖНИЙ ЭКРАН (5) ///
-	// Возврат в основной - сверху (зеркально главному экрану)
+	// Арктика (5) → главный
 	screens[5].emplace_back(
-		sf::FloatRect(350, 0, 100, 20),  // Зона перехода сверху
-		sf::Vector2f(400, 580),          // Появление на экране 0 (где был вход на экран 5)
+		sf::FloatRect(800, 527, 150, 50),    // Широкая верхняя зона
+		sf::Vector2f(100, 50),
 		0
 	);
 }
@@ -224,35 +224,43 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition)
 void Game::update()
 {
 	this->pollEvents();
+	// Управление с учетом времени кадра
+	float deltaTime = clock.restart().asSeconds();  // Теперь работает правильно
+	float currentSpeed = moveSpeed * deltaTime * 60;
+	
 
-	// Управление персонажем
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-		playerSprite.move(-moveSpeed, 0);
+		playerSprite.move(-currentSpeed, 0);
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-		playerSprite.move(moveSpeed, 0);
+		playerSprite.move(currentSpeed, 0);
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-		playerSprite.move(0, -moveSpeed);
+		playerSprite.move(0, -currentSpeed);
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-		playerSprite.move(0, moveSpeed);
+		playerSprite.move(0, currentSpeed);
 
-	// Проверка переходов между экранами
+	// Проверка переходов
 	sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
-	for (const auto& teleport : screens[currentScreen])
-	{
-		if (teleport.checkCollision(playerBounds))
-		{
-			changeScreen(teleport.getTargetScreen(), teleport.getTargetPosition());
+	for (const auto& teleport : screens[currentScreen]) {
+		if (teleport.checkCollision(playerBounds)) {
+			sf::Vector2f newPos = teleport.getTargetPosition();
+
+			if (newPos.x < 50) newPos.x = 80;
+			if (newPos.x > 974) newPos.x = 940;
+			if (newPos.y < 50) newPos.y = 100;
+			if (newPos.y > 477) newPos.y = 400;
+
+			changeScreen(teleport.getTargetScreen(), newPos);
 			break;
 		}
 	}
 
-	// Границы экрана
-	sf::Vector2f position = playerSprite.getPosition();
-	sf::Vector2f size(playerBounds.width, playerBounds.height);
+	// Границы с учетом размера спрайта
+	sf::Vector2f pos = playerSprite.getPosition();
+	sf::Vector2f size = playerSprite.getGlobalBounds().getSize();
 
-	position.x = std::max(0.f, std::min(position.x, videoMode.width - size.x));
-	position.y = std::max(0.f, std::min(position.y, videoMode.height - size.y));
-	playerSprite.setPosition(position);
+	pos.x = std::clamp(pos.x, 0.f, 1024.f - size.x);
+	pos.y = std::clamp(pos.y, 0.f, 577.f - size.y);
+	playerSprite.setPosition(pos);
 }
 
 // отрисовка игры
@@ -266,5 +274,16 @@ void Game::render()
 	// Отрисовка персонажа
 	this->window->draw(this->playerSprite);
 
+	// Отладочная отрисовка зон перехода (можно отключить)
+	sf::RectangleShape debugZone;
+	debugZone.setFillColor(sf::Color(0, 255, 0, 120));
+	for (const auto& teleport : screens[currentScreen]) {
+		auto rect = teleport.getZoneRect();
+		debugZone.setPosition(rect.left, rect.top);
+		debugZone.setSize(sf::Vector2f(rect.width, rect.height));
+		window->draw(debugZone);
+	} // <- Эта скобка была пропущена
+
 	this->window->display();
-}
+
+} 

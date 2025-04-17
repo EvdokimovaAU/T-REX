@@ -1,5 +1,3 @@
-#pragma once
-
 #include <iostream>
 #include <vector>
 
@@ -31,4 +29,3 @@ public:
 	sf::FloatRect getZoneRect() const;
 
 };
-

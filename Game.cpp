@@ -28,45 +28,12 @@ void Game::initaializeVariables()
 // создание окна
 void Game::initWindow()
 {
-	this->videoMode.height = 577;
-	this->videoMode.width = 1024;
+	this->videoMode.height = 600;
+	this->videoMode.width = 800;
 	// задаем окно
-	this->window = new sf::RenderWindow(this->videoMode, "Paleontolog", sf::Style::Close);
-	this->window->setFramerateLimit(60);
-}
+	this->window = new sf::RenderWindow(this->videoMode, "Paleontolog", sf::Style::Default);
 
-void Game::loadBackgrounds()
-{
-	backgroundTextures.clear();
-	backgroundSprites.clear();
-
-	vector<string>bgPaths = {
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/baza.jpg",
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/shop.jpg",
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/museum.jpg",
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/desert.jpg",
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/jungle.jpg",
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/arctica.jpg"
-	};
-
-	for (const auto& path : bgPaths) {
-		sf::Texture texture;
-		if (!texture.loadFromFile(path)) {
-			std::cerr << "Error loading: " << path << std::endl;
-			// Создаем текстуру-заглушку
-			texture.create(1024, 577);
-			sf::Image img;
-			img.create(1024, 577, sf::Color(100, 100, 150)); // Серый
-			texture.loadFromImage(img);
-		}
-		backgroundTextures.push_back(texture);
-		backgroundSprites.emplace_back(backgroundTextures.back());
-	}
-
-	if (backgroundSprites.size() != 6) {
-		std::cerr << "Warning: Not all backgrounds loaded! Loaded: "
-			<< backgroundSprites.size() << "/6" << std::endl;
-	}
+	this->window->setFramerateLimit(144);
 }
 
 
@@ -74,34 +41,56 @@ void Game::loadBackgrounds()
 // проверка, открыто ли окно
 const bool Game::running() const
 {
-	return this->window->isOpen(); 
+	return this->window->isOpen();
 }
 
 // обработка (закрытие с помощью крестика и Escape)
 void Game::pollEvents()
 {
-	while (window->pollEvent(event))
+	while (this->window->pollEvent(this->event)) // обработкаа событий
 	{
-		if (event.type == sf::Event::Closed)
-			window->close();
-		if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
-			window->close();
+		switch (this->event.type)
+		{
+			// закрытие окна - крестик
+		case sf::Event::Closed:
+			this->window->close();
+			break;
+
+			// закрытие окна - нажатие клавиши 
+		case sf::Event::KeyPressed:
+			if (this->event.key.code == sf::Keyboard::Escape)
+				this->window->close();
+			break;
+		}
 	}
 }
 
 // персонаж
 void Game::initPlayer()
 {
-	if (!playerTexture.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/dino.png")) {
-		std::cerr << "Failed to load player texture!" << std::endl;
-		sf::Image img;
-		img.create(50, 50, sf::Color::Green);
-		playerTexture.loadFromImage(img);
+
+	std::string texturePath = "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/dino.png"; // УКАЖИТЕ РЕАЛЬНЫЙ ПУТЬ!
+	if (!playerTexture.loadFromFile(texturePath)) {
+		std::cerr << "FATAL ERROR: Failed to load texture at: " << texturePath << "\n";
+		// Создаём красный квадрат как заглушку
+		sf::Image placeholder;
+		placeholder.create(64, 64, sf::Color::Red);
+		playerTexture.loadFromImage(placeholder);
 	}
 	playerSprite.setTexture(playerTexture);
-	playerSprite.setScale(0.5f, 0.5f);
-	playerSprite.setPosition(512, 288); 
-	
+
+	// Установка нового размера (в пикселях)
+	sf::Vector2f desiredSize(250.f, 170.f); // ширина, высота
+
+	// Рассчитываем масштаб
+	sf::Vector2u textureSize = playerTexture.getSize();
+	sf::Vector2f scale(
+		desiredSize.x / textureSize.x,
+		desiredSize.y / textureSize.y
+	);
+
+	playerSprite.setScale(scale);
+	playerSprite.setPosition(400, 300);
 }
 
 
@@ -111,27 +100,81 @@ void Game::initScreens()
 {
 	screens.resize(6);
 
-	// Главный экран (0)
-	screens[0].emplace_back(sf::FloatRect(0, 200, 50, 300), sf::Vector2f(974, 300), 1); // Влево
-	screens[0].emplace_back(sf::FloatRect(974, 200, 50, 300), sf::Vector2f(50, 300), 2); // Вправо
-	screens[0].emplace_back(sf::FloatRect(400, 557, 200, 20), sf::Vector2f(512, 50), 5); // Вниз
-	screens[0].emplace_back(sf::FloatRect(400, 0, 200, 50), sf::Vector2f(512, 527), 3); // Вверх-лево
-	screens[0].emplace_back(sf::FloatRect(800, 0, 200, 50), sf::Vector2f(112, 527), 4); // Вверх-право
+	/// ГЛАВНЫЙ ЭКРАН (0) ///
+	// Левый переход (центр) → экран 1
+	screens[0].emplace_back(
+		sf::FloatRect(0, 250, 40, 200),   // Зона перехода слева
+		sf::Vector2f(760, 300),           // Появление на экране 1
+		1
+	);
 
-	// Левый экран (1)
-	screens[1].emplace_back(sf::FloatRect(974, 200, 50, 300), sf::Vector2f(50, 300), 0);
+	// Правый переход (центр) → экран 2
+	screens[0].emplace_back(
+		sf::FloatRect(760, 250, 40, 200), // Зона перехода справа
+		sf::Vector2f(40, 300),            // Появление на экране 2
+		2
+	);
 
-	// Правый экран (2)
-	screens[2].emplace_back(sf::FloatRect(0, 200, 50, 300), sf::Vector2f(974, 300), 0);
+	// Нижний переход → экран 5
+	screens[0].emplace_back(
+		sf::FloatRect(350, 580, 100, 20), // Зона перехода внизу
+		sf::Vector2f(400, 20),            // Появление на экране 5
+		5
+	);
 
-	// Верхний левый экран (3)
-	screens[3].emplace_back(sf::FloatRect(0, 527, 1024, 50), sf::Vector2f(512, 50), 0);
+	// Верхний левый угол → экран 3
+	screens[0].emplace_back(
+		sf::FloatRect(0, 0, 90, 90),      // Зона перехода
+		sf::Vector2f(710, 510),           // Появление на экране 3
+		3
+	);
 
-	// Верхний правый экран (4)
-	screens[4].emplace_back(sf::FloatRect(0, 527, 1024, 50), sf::Vector2f(512, 50), 0);
+	// Верхний правый угол → экран 4
+	screens[0].emplace_back(
+		sf::FloatRect(710, 0, 90, 90),    // Зона перехода
+		sf::Vector2f(90, 510),            // Появление на экране 4
+		4
+	);
 
-	// Нижний экран (5)
-	screens[5].emplace_back(sf::FloatRect(0, 0, 1024, 50), sf::Vector2f(512, 527), 0);
+	/// ЛЕВЫЙ ЭКРАН (1) ///
+	// Возврат в основной - справа (зеркально главному экрану)
+	screens[1].emplace_back(
+		sf::FloatRect(760, 250, 40, 200), // Зона перехода справа
+		sf::Vector2f(40, 300),            // Появление на экране 0 (где был вход на экран 1)
+		0
+	);
+
+	/// ПРАВЫЙ ЭКРАН (2) ///
+	// Возврат в основной - слева (зеркально главному экрану)
+	screens[2].emplace_back(
+		sf::FloatRect(0, 250, 40, 200),   // Зона перехода слева
+		sf::Vector2f(760, 300),           // Появление на экране 0 (где был вход на экран 2)
+		0
+	);
+
+	/// ВЕРХНИЙ ЛЕВЫЙ ЭКРАН (3) ///
+	// Возврат в основной - внизу справа (зеркально главному экрану)
+	screens[3].emplace_back(
+		sf::FloatRect(710, 510, 90, 90),  // Зона перехода внизу справа
+		sf::Vector2f(90, 90),             // Появление на экране 0 (где был вход на экран 3)
+		0
+	);
+
+	/// ВЕРХНИЙ ПРАВЫЙ ЭКРАН (4) ///
+	// Возврат в основной - внизу слева (зеркально главному экрану)
+	screens[4].emplace_back(
+		sf::FloatRect(0, 510, 90, 90),   // Зона перехода внизу слева
+		sf::Vector2f(710, 90),            // Появление на экране 0 (где был вход на экран 4)
+		0
+	);
+
+	/// НИЖНИЙ ЭКРАН (5) ///
+	// Возврат в основной - сверху (зеркально главному экрану)
+	screens[5].emplace_back(
+		sf::FloatRect(350, 0, 100, 20),  // Зона перехода сверху
+		sf::Vector2f(400, 580),          // Появление на экране 0 (где был вход на экран 5)
+		0
+	);
 }
 
 // выбор экрана
@@ -148,8 +191,6 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition)
 	currentScreen = newScreen;
 	playerSprite.setPosition(newPosition);
 }
-	
-
 // игровая логика
 void Game::update()
 {
@@ -202,7 +243,3 @@ void Game::render()
 	window->draw(playerSprite);
 	window->display();
 }
-
-
-
-

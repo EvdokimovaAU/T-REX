@@ -1,4 +1,4 @@
-#pragma once // защита от повторного включения
+п»ї#pragma once // Г§Г Г№ГЁГІГ  Г®ГІ ГЇГ®ГўГІГ®Г°Г­Г®ГЈГ® ГўГЄГ«ГѕГ·ГҐГ­ГЁГї
 
 #include "Teleport.h"
 #include <SFML/Graphics.hpp>
@@ -10,38 +10,38 @@
 using std::vector;
 using std::string;
 
-// Структура для хранения истории переходов между экранами
-struct ScreenHistory 
+// Г‘ГІГ°ГіГЄГІГіГ°Г  Г¤Г«Гї ГµГ°Г Г­ГҐГ­ГЁГї ГЁГ±ГІГ®Г°ГЁГЁ ГЇГҐГ°ГҐГµГ®Г¤Г®Гў Г¬ГҐГ¦Г¤Гі ГЅГЄГ°Г Г­Г Г¬ГЁ
+struct ScreenHistory
 {
-	int screen; // номер экрана
-	sf::Vector2f position; // позиция игрока на этом экране
+	int screen; // Г­Г®Г¬ГҐГ° ГЅГЄГ°Г Г­Г 
+	sf::Vector2f position; // ГЇГ®Г§ГЁГ¶ГЁГї ГЁГЈГ°Г®ГЄГ  Г­Г  ГЅГІГ®Г¬ ГЅГЄГ°Г Г­ГҐ
 };
 
 class Game
 {
 private:
-	sf::RenderWindow* window; // окно (указатель, тк создаем через new)
-	sf::Event event; 
-	sf::VideoMode videoMode; 
+	sf::RenderWindow* window; // Г®ГЄГ­Г® (ГіГЄГ Г§Г ГІГҐГ«Гј, ГІГЄ Г±Г®Г§Г¤Г ГҐГ¬ Г·ГҐГ°ГҐГ§ new)
+	sf::Event event;
+	sf::VideoMode videoMode;
 
-	
-	// персонаж
-	sf::Texture playerTexture ; // текстура персонажа
-	sf::Sprite playerSprite; // спрайт 
-	float moveSpeed = 5.0f; // скорость перемещения
 
-	// фоны
-	vector<sf::Texture> backgroundTextures; 
+	// ГЇГҐГ°Г±Г®Г­Г Г¦
+	sf::Texture playerTexture; // ГІГҐГЄГ±ГІГіГ°Г  ГЇГҐГ°Г±Г®Г­Г Г¦Г 
+	sf::Sprite playerSprite; // Г±ГЇГ°Г Г©ГІ 
+	float moveSpeed = 5.0f; // Г±ГЄГ®Г°Г®Г±ГІГј ГЇГҐГ°ГҐГ¬ГҐГ№ГҐГ­ГЁГї
+
+	// ГґГ®Г­Г»
+	vector<sf::Texture> backgroundTextures;
 	vector<sf::Sprite> backgroundSprites;
 
-	// система экранов
+	// Г±ГЁГ±ГІГҐГ¬Г  ГЅГЄГ°Г Г­Г®Гў
 	int currentScreen;
-	void initScreens(); // инициализая экранов и переходов
-	void changeScreen(int newScreen, sf::Vector2f newPosition); // смена экрана
-	vector<vector<Teleport>> screens; // зоны для каждого экрана
-	vector<ScreenHistory> previousPositions; //Вектор векторов зон телепортации
+	void initScreens(); // ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Гї ГЅГЄГ°Г Г­Г®Гў ГЁ ГЇГҐГ°ГҐГµГ®Г¤Г®Гў
+	void changeScreen(int newScreen, sf::Vector2f newPosition); // Г±Г¬ГҐГ­Г  ГЅГЄГ°Г Г­Г 
+	vector<vector<Teleport>> screens; // Г§Г®Г­Г» Г¤Г«Гї ГЄГ Г¦Г¤Г®ГЈГ® ГЅГЄГ°Г Г­Г 
+	vector<ScreenHistory> previousPositions; //Г‚ГҐГЄГІГ®Г° ГўГҐГЄГІГ®Г°Г®Гў Г§Г®Г­ ГІГҐГ«ГҐГЇГ®Г°ГІГ Г¶ГЁГЁ
 
-	// инициализация
+	// ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶ГЁГї
 	void initaializeVariables();
 	void initWindow();
 	void loadBackgrounds();
@@ -50,12 +50,11 @@ public:
 	Game();
 	virtual ~Game();
 
-	//функции доступа
-	const bool running() const; // проверка, открыто ли окно
+	//ГґГіГ­ГЄГ¶ГЁГЁ Г¤Г®Г±ГІГіГЇГ 
+	const bool running() const; // ГЇГ°Г®ГўГҐГ°ГЄГ , Г®ГІГЄГ°Г»ГІГ® Г«ГЁ Г®ГЄГ­Г®
 
-	void pollEvents(); // обработка событий (нажатий и тд)
-	void update(); // обновление игры
-	void render(); // отрисовка графики
+	void pollEvents(); // Г®ГЎГ°Г ГЎГ®ГІГЄГ  Г±Г®ГЎГ»ГІГЁГ© (Г­Г Г¦Г ГІГЁГ© ГЁ ГІГ¤)
+	void update(); // Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ ГЁГЈГ°Г»
+	void render(); // Г®ГІГ°ГЁГ±Г®ГўГЄГ  ГЈГ°Г ГґГЁГЄГЁ
 	void initPlayer();
 };
-

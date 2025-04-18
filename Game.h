@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 using std::vector;
 using std::string;
@@ -58,6 +59,6 @@ public:
 	void render(); // îòðèñîâêà ãðàôèêè
 	void initPlayer();
 	string getLocationName(int screenIndex) const;
-	void drawUI();
+	
 	
 };

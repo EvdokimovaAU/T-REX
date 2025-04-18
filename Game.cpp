@@ -108,8 +108,6 @@ string Game::getLocationName(int screenIndex) const
 }
 
 
-
-
 void Game::initBackgrounds()
 {
 	backgroundTextures.resize(6);
@@ -130,7 +128,7 @@ void Game::initBackgrounds()
 			std::cerr << "Failed to load background " << i << " from: " << texturePaths[i] << "\n";
 			// Создаём красный квадрат как заглушку
 			sf::Image placeholder;
-			placeholder.create(800, 600, sf::Color::Red);
+			placeholder.create(1024, 577, sf::Color::Red);
 			backgroundTextures[i].loadFromImage(placeholder);
 		}
 		backgroundSprites[i].setTexture(backgroundTextures[i]);
@@ -147,50 +145,53 @@ void Game::initScreens()
 {
 	screens.resize(6);
 
-	/// ГЛАВНЫЙ ЭКРАН (0) ///
-	// Левый переход в магазин (увеличил высоту)
+	// Размеры окна
+	const float windowWidth = 1024.f;
+	const float windowHeight = 577.f;
+	const float playerWidth = playerSprite.getGlobalBounds().width;
+	const float playerHeight = playerSprite.getGlobalBounds().height;
+
+	/// ГЛАВНЫЙ ЭКРАН (0) -> МАГАЗИН (1) ///
+	// Упрощенный переход (левая граница экрана)
 	screens[0].emplace_back(
-		sf::FloatRect(0, 250, 30, 150),    // Узкая (40px) но высокая (300px) зона
-		sf::Vector2f(994, 300),            // Появление справа
+		sf::FloatRect(0.f, 0.f, 10.f, windowHeight),  // Узкая 10px полоса по всей высоте слева
+		sf::Vector2f(windowWidth - playerWidth - 10.f, windowHeight / 2 - playerHeight / 2),  // Правая сторона магазина
 		1
 	);
 
-	// Правый переход в музей (увеличил высоту)
+	// Правый переход в музей
 	screens[0].emplace_back(
-		sf::FloatRect(994, 250, 30, 150),  // Узкая (40px) но высокая (300px) зона
-		sf::Vector2f(30, 350),             // Появление слева
+		sf::FloatRect(994, 250, 30, 150),   // Правая зона
+		sf::Vector2f(30, 350),              // Появление слева в музее
 		2
 	);
 
-	// Нижний переход (широкий)
 	screens[0].emplace_back(
 		sf::FloatRect(462, 557, 100, 20),  // Широкая нижняя зона (324px)
 		sf::Vector2f(462, 20),             // Появление сверху
 		5
 	);
 
-	// Верхний левый (широкий)
+	// Верхний левый переход в пустыню
 	screens[0].emplace_back(
-		sf::FloatRect(0, 0, 300, 60),    // Широкая верхняя зона (300px)
-		sf::Vector2f(724, 517),            // Появление снизу
+		sf::FloatRect(0, 0, 300, 60),      // Верхняя левая зона
+		sf::Vector2f(724, 517),            // Появление снизу в пустыне
 		3
 	);
 
-	// Верхний правый (широкий)
+	// Верхний правый переход в джунгли
 	screens[0].emplace_back(
-		sf::FloatRect(664, 0, 300, 60),    // Широкая верхняя зона (300px)
-		sf::Vector2f(100, 517),            // Появление снизу
+		sf::FloatRect(windowWidth - 100.f, 0.f, 100.f, 60.f),  // Маленькая зона в правом верхнем углу
+		sf::Vector2f(50.f, windowHeight - playerHeight - 10.f),      // Появление внизу слева в джунглях
 		4
 	);
 
-	/// ОБРАТНЫЕ ПЕРЕХОДЫ ///
-	// Магазин (1) → главный
 	screens[1].emplace_back(
-		sf::FloatRect(994, 250, 30, 150),  // Зеркальная зона
-		sf::Vector2f(0, 300),
+		sf::FloatRect(windowWidth - 10.f, 0.f, 10.f, windowHeight),  // Узкая 10px полоса справа
+		sf::Vector2f(10.f, windowHeight / 2 - playerHeight / 2),         // Левая сторона главного экрана
 		0
 	);
-	
+
 	// Музей (2) → главный
 	screens[2].emplace_back(
 		sf::FloatRect(462, 547, 100, 30),
@@ -200,15 +201,15 @@ void Game::initScreens()
 
 	// Пустыня (3) → главный
 	screens[3].emplace_back(
-		sf::FloatRect(300, 520, 400, 50),  // Широкая нижняя зона
+		sf::FloatRect(300, 520, 400, 50),
 		sf::Vector2f(350, 50),
 		0
 	);
 
 	// Джунгли (4) → главный
 	screens[4].emplace_back(
-		sf::FloatRect(100, 517, 300, 60),  // Широкая нижняя зона
-		sf::Vector2f(664, 60),
+		sf::FloatRect(0.f, playerHeight - 30.f, 150.f, 30.f),  // Узкая полоса внизу слева
+		sf::Vector2f(windowWidth - 60.f, 40.f),              // Появление вверху справа на главном
 		0
 	);
 
@@ -233,151 +234,100 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition)
 
 	currentScreen = newScreen;
 	playerSprite.setPosition(newPosition);
+
+
 }
 
-void Game::update()
-{
-	// 1. Обработка событий (нажатия клавиш, закрытие окна)
-	this->pollEvents();
+void Game::update() {
+	// Обработка событий
+	pollEvents();
 
-	// 2. Расчет времени между кадрами для плавного движения
+	// Движение персонажа
 	float deltaTime = clock.restart().asSeconds();
-	float currentSpeed = moveSpeed * deltaTime * 60; // Нормализация скорости
+	float speed = moveSpeed * deltaTime * 60.f;
 
-	// 3. Управление персонажем
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-		playerSprite.move(-currentSpeed, 0); // Движение влево
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-		playerSprite.move(currentSpeed, 0);  // Движение вправо
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-		playerSprite.move(0, -currentSpeed); // Движение вверх
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-		playerSprite.move(0, currentSpeed);  // Движение вниз
-	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) playerSprite.move(-speed, 0);
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) playerSprite.move(speed, 0);
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) playerSprite.move(0, -speed);
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) playerSprite.move(0, speed);
 
-	// 4. Получаем текущие границы спрайта
-	sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
-	const float buffer = 5.f; // Отступ от краев экрана
+	// Получаем точные границы спрайта
+	sf::FloatRect bounds = playerSprite.getGlobalBounds();
+	float spriteWidth = bounds.width;
+	float spriteHeight = bounds.height;
 
-	// 5. Ограничение движения в зависимости от текущего экрана
+	// Границы движения для каждого экрана
 	switch (currentScreen) {
-	case 0: // Главный экран
+	case 0: // Главный экран (база)
 		playerSprite.setPosition(
-			std::max(buffer, std::min(playerSprite.getPosition().x, 1024.f - playerBounds.width - buffer)),
-			std::max(buffer, std::min(playerSprite.getPosition().y, 577.f - playerBounds.height - buffer))
+			std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - spriteWidth)),
+			std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - spriteHeight))
 		);
 		break;
 
-	case 1: // Магазин (ограничение слева для выхода)
+	case 1: // Магазин
 		playerSprite.setPosition(
-			std::max(30.f + buffer, std::min(playerSprite.getPosition().x, 1024.f - playerBounds.width - buffer)),
-			std::max(buffer, std::min(playerSprite.getPosition().y, 577.f - playerBounds.height - buffer))
+			std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - spriteWidth)),
+			std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - spriteHeight))
 		);
 		break;
 
-	case 2: // Музей (ограничение справа для выхода)
+	case 2: // Музей
 		playerSprite.setPosition(
-			std::max(buffer, std::min(playerSprite.getPosition().x, 1024.f - playerBounds.width - 30.f - buffer)),
-			std::max(buffer, std::min(playerSprite.getPosition().y, 577.f - playerBounds.height - buffer))
+			std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - spriteWidth)),
+			std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - spriteHeight))
 		);
 		break;
 
-	case 3: // Пустыня (дополнительное ограничение сверху)
+	case 3: // Пустыня
 		playerSprite.setPosition(
-			std::max(buffer, std::min(playerSprite.getPosition().x, 1024.f - playerBounds.width - buffer)),
-			std::max(50.f + buffer, std::min(playerSprite.getPosition().y, 577.f - playerBounds.height - buffer))
+			std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - spriteWidth)),
+			std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - spriteHeight))
 		);
 		break;
 
-	case 4: // Джунгли (дополнительное ограничение снизу)
+	case 4: // Джунгли
 		playerSprite.setPosition(
-			std::max(buffer, std::min(playerSprite.getPosition().x, 1024.f - playerBounds.width - buffer)),
-			std::max(buffer, std::min(playerSprite.getPosition().y, 577.f - playerBounds.height - 50.f - buffer))
+			std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - spriteWidth)),
+			std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - spriteHeight))
 		);
 		break;
 
 	case 5: // Арктика
 		playerSprite.setPosition(
-			std::max(buffer, std::min(playerSprite.getPosition().x, 1024.f - playerBounds.width - buffer)),
-			std::max(buffer, std::min(playerSprite.getPosition().y, 577.f - playerBounds.height - buffer))
+			std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - spriteWidth)),
+			std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - spriteHeight))
 		);
 		break;
 	}
 
-	// 6. Проверка переходов между экранами
-	for (const auto& teleport : screens[currentScreen]) {
-		if (teleport.checkCollision(playerBounds)) {
-			// Корректировка позиции для предотвращения залипания
-			sf::Vector2f newPos = teleport.getTargetPosition();
-
-			// Дополнительные проверки для разных экранов
-			switch (teleport.getTargetScreen()) {
-			case 0: // Возврат на главный
-				newPos.x = std::clamp(newPos.x, buffer, 1024.f - playerBounds.width - buffer);
-				newPos.y = std::clamp(newPos.y, buffer, 577.f - playerBounds.height - buffer);
-				break;
-
-			case 1: // Магазин
-				newPos.x = std::max(30.f + buffer, newPos.x);
-				break;
-
-			case 2: // Музей
-				newPos.x = std::min(newPos.x, 1024.f - playerBounds.width - 30.f - buffer);
-				break;
-			}
-
-			// Выполняем переход
-			changeScreen(teleport.getTargetScreen(), newPos);
-
-			// Прерываем проверку после первого найденного перехода
+	// Проверка телепортов с учетом точных границ
+	for (const auto& portal : screens[currentScreen]) {
+		if (bounds.intersects(portal.getZoneRect())) {
+			changeScreen(portal.getTargetScreen(), portal.getTargetPosition());
 			break;
 		}
 	}
-
-	// 7. Дополнительные проверки (по желанию)
-	// Например: проверка столкновений с объектами, сбор предметов и т.д.
 }
 
 // отрисовка игры
 void Game::render()
 {
-	// 1. Очистка экрана
-	window->clear(sf::Color(50, 50, 50)); // Темно-серый фон вместо черного
-
-	// 2. Отрисовка фона
+	window->clear();
 	window->draw(backgroundSprites[currentScreen]);
 
-	// 3. Всегда отображаем порталы (без DEBUG_MODE)
-	sf::RectangleShape portalShape;
-	portalShape.setOutlineThickness(1.5f);
-	portalShape.setOutlineColor(sf::Color(255, 255, 0, 200)); // Ярко-желтая граница
-	portalShape.setFillColor(sf::Color(255, 255, 0, 40));     // Полупрозрачная заливка
+	// Временная отрисовка зон перехода (для отладки)
+	sf::RectangleShape debugZone;
+	debugZone.setFillColor(sf::Color(255, 0, 0, 120)); // Полупрозрачный красный
 
 	for (const auto& portal : screens[currentScreen]) {
-		sf::FloatRect rect = portal.getZoneRect();
-		portalShape.setPosition(rect.left, rect.top);
-		portalShape.setSize(sf::Vector2f(rect.width, rect.height));
-		window->draw(portalShape);
+		sf::FloatRect zone = portal.getZoneRect();
+		debugZone.setPosition(zone.left, zone.top);
+		debugZone.setSize(sf::Vector2f(zone.width, zone.height));
+		window->draw(debugZone);
 	}
 
-	// 4. Отрисовка персонажа с уменьшенными отступами
-	const float margin = 2.f; // Меньший отступ (было 5.f)
-	sf::FloatRect bounds = playerSprite.getGlobalBounds();
-
-	// Корректировка позиции
-	playerSprite.setPosition(
-		std::clamp(playerSprite.getPosition().x, margin, 1024.f - bounds.width - margin),
-		std::clamp(playerSprite.getPosition().y, margin, 577.f - bounds.height - margin)
-	);
-
 	window->draw(playerSprite);
-
-
-	
-
-	// 6. Отображение кадра
 	window->display();
+
 }

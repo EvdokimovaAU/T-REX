@@ -1,6 +1,7 @@
-﻿#pragma once // çàùèòà îò ïîâòîðíîãî âêëþ÷åíèÿ
+﻿#pragma once 
 
 #include "Teleport.h"
+#include "Loot.h"
 #include <SFML/Graphics.hpp>
 
 #include <iostream>
@@ -11,56 +12,63 @@
 using std::vector;
 using std::string;
 
-// Ñòðóêòóðà äëÿ õðàíåíèÿ èñòîðèè ïåðåõîäîâ ìåæäó ýêðàíàìè
 struct ScreenHistory
 {
-	int screen; // íîìåð ýêðàíà
-	sf::Vector2f position; // ïîçèöèÿ èãðîêà íà ýòîì ýêðàíå
+	int screen; 
+	sf::Vector2f position; 
 };
 
 class Game
 {
 private:
-	sf::RenderWindow* window; // îêíî (óêàçàòåëü, òê ñîçäàåì ÷åðåç new)
+	sf::RenderWindow* window; 
 	sf::Event event;
 	sf::VideoMode videoMode;
 	std::vector<sf::Texture> backgroundTextures;
 	std::vector<sf::Sprite> backgroundSprites;
+
+
 	
+	sf::Texture playerTexture; 
+	sf::Sprite playerSprite;
+	float moveSpeed = 5.0f; 
 
-	// ïåðñîíàæ
-	sf::Texture playerTexture; // òåêñòóðà ïåðñîíàæà
-	sf::Sprite playerSprite; // ñïðàéò 
-	float moveSpeed = 5.0f; // ñêîðîñòü ïåðåìåùåíèÿ
-
-	void initBackgrounds(); // Добавляем объявление метода
-	// ñèñòåìà ýêðàíîâ
+	void initBackgrounds(); 
+	
 	int currentScreen;
-	void initScreens(); // èíèöèàëèçàÿ ýêðàíîâ è ïåðåõîäîâ
-	void changeScreen(int newScreen, sf::Vector2f newPosition); // ñìåíà ýêðàíà
-	vector<vector<Teleport>> screens; // çîíû äëÿ êàæäîãî ýêðàíà
-	vector<ScreenHistory> previousPositions; //Âåêòîð âåêòîðîâ çîí òåëåïîðòàöèè
+	void initScreens(); 
+	void changeScreen(int newScreen, sf::Vector2f newPosition); 
+	vector<vector<Teleport>> screens; 
+	vector<ScreenHistory> previousPositions; 
 
-	// èíèöèàëèçàöèÿ
+	
 	void initaializeVariables();
 	void initWindow();
-	
+
 	sf::Clock clock;
 	sf::Clock portalClock;
 	bool canUsePortal = true;
+
+	std::vector<std::vector<Loot>> digSites; // Для каждого экрана (3,4,5)
+	sf::Texture buriedTextures[3]; // Текстуры закопанного лута для 3 биомов
+	sf::Texture dugOutTextures[4]; // Текстуры раскопанного лута (кости, растение, зуб, единорог)
+
+	void initLootTextures();
+	void initDigSites();
+	void handleDigging();
 
 public:
 	Game();
 	virtual ~Game();
 
-	//ôóíêöèè äîñòóïà
-	const bool running() const; // ïðîâåðêà, îòêðûòî ëè îêíî
+	
+	const bool running() const; 
 
-	void pollEvents(); // îáðàáîòêà ñîáûòèé (íàæàòèé è òä)
-	void update(); // îáíîâëåíèå èãðû
-	void render(); // îòðèñîâêà ãðàôèêè
+	void pollEvents();
+	void update(); 
+	void render();
 	void initPlayer();
 	string getLocationName(int screenIndex) const;
-	
-	
+
+
 };

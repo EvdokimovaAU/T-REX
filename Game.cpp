@@ -8,6 +8,8 @@ Game::Game()
 	this->initPlayer();
 	this->initScreens();
 	this->initBackgrounds();
+	this->initLootTextures();
+	this->initDigSites();
 	moveSpeed = 8.0f;
 	currentScreen = 0;
 	previousPositions.reserve(10);  // Зарезервируем память для 10 позиций
@@ -238,6 +240,83 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition)
 
 }
 
+// Инициализация текстур лута
+void Game::initLootTextures() {
+	// Загрузка текстур закопанного лута для каждого биома
+	std::string buriedPaths[3] = {
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootjun.png",
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootarc.png",
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootdes.png"
+	};
+
+	for (int i = 0; i < 3; ++i) {
+		if (!buriedTextures[i].loadFromFile(buriedPaths[i])) {
+			// Обработка ошибки загрузки
+		}
+	}
+
+	// Загрузка текстур раскопанного лута
+	std::string dugOutPaths[4] = {
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/bones.png",
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/plant.png",
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/nothing.png",
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/unicorn.png"
+	};
+
+	for (int i = 0; i < 4; ++i) {
+		if (!dugOutTextures[i].loadFromFile(dugOutPaths[i])) {
+			// Обработка ошибки загрузки
+		}
+	}
+}
+
+// Инициализация зон раскопок
+void Game::initDigSites() {
+	digSites.resize(6); // Для всех экранов, но заполним только 3,4,5
+
+	// Пустыня (экран 3)
+	for (int i = 0; i < 4; ++i) {
+		sf::Vector2f pos(100 + i * 200, 150 + (i % 2) * 200);
+		LootType type = static_cast<LootType>(rand() % 5); // Случайный тип лута
+		digSites[3].emplace_back(buriedTextures[0], dugOutTextures[static_cast<int>(type)], pos, type);
+	}
+
+	// Джунгли (экран 4)
+	for (int i = 0; i < 4; ++i) {
+		sf::Vector2f pos(150 + i * 180, 100 + (i % 2) * 250);
+		LootType type = static_cast<LootType>(rand() % 5);
+		digSites[4].emplace_back(buriedTextures[1], dugOutTextures[static_cast<int>(type)], pos, type);
+	}
+
+	// Арктика (экран 5)
+	for (int i = 0; i < 4; ++i) {
+		sf::Vector2f pos(80 + i * 220, 120 + (i % 2) * 220);
+		LootType type = static_cast<LootType>(rand() % 5);
+		digSites[5].emplace_back(buriedTextures[2], dugOutTextures[static_cast<int>(type)], pos, type);
+	}
+}
+
+// Обработка раскопок
+void Game::handleDigging() {
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
+		// Проверяем, находится ли игрок на экране с раскопками
+		if (currentScreen == 3 || currentScreen == 4 || currentScreen == 5) {
+			// Проверяем пересечение с зонами раскопок
+			sf::Vector2f playerCenter = playerSprite.getPosition();
+			playerCenter.x += playerSprite.getGlobalBounds().width / 2;
+			playerCenter.y += playerSprite.getGlobalBounds().height / 2;
+
+			for (auto& loot : digSites[currentScreen]) {
+				if (!loot.getIsDug() && loot.contains(playerCenter)) {
+					loot.dig();
+					// Можно добавить звук или эффект раскопок
+					break; // Раскапываем только один лут за раз
+				}
+			}
+		}
+	}
+}
+
 void Game::update() {
 	// Обработка событий
 	pollEvents();
@@ -271,6 +350,7 @@ void Game::update() {
 	else if (portalClock.getElapsedTime().asSeconds() > 0.5f) {
 		canUsePortal = true;
 	}
+	handleDigging();
 }
 
 // отрисовка игры
@@ -278,6 +358,13 @@ void Game::render()
 {
 	window->clear();
 	window->draw(backgroundSprites[currentScreen]);
+
+	// Отрисовка зон раскопок для текущего экрана
+	if (currentScreen == 3 || currentScreen == 4 || currentScreen == 5) {
+		for (const auto& loot : digSites[currentScreen]) {
+			loot.draw(*window);
+		}
+	}
 
 	// Временная отрисовка зон перехода (для отладки)
 	sf::RectangleShape debugZone;

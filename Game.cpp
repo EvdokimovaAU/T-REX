@@ -14,6 +14,12 @@ Game::Game()
 	currentScreen = 0;
 	previousPositions.reserve(10);  // Зарезервируем память для 10 позиций
 
+	showDebugInfo = true; // По умолчанию включено, можно выключить в релизе
+	if (!debugFont.loadFromFile("fonts/arial.ttf")) {
+		std::cerr << "Failed to load debug font, using default\n";
+		debugFont = sf::Font(); // Используем встроенный шрифт, если загрузка не удалась
+	}
+
 }
 Game::~Game()
 {
@@ -45,6 +51,17 @@ void Game::initWindow()
 const bool Game::running() const
 {
 	return this->window->isOpen();
+}
+
+int Game::countDugLoots()
+{
+	if (currentScreen < 3 || currentScreen > 5) return 0;
+
+	int count = 0;
+	for (const auto& loot : digSites[currentScreen]) {
+		if (loot.getIsDug()) count++;
+	}
+	return count;
 }
 
 // обработка (закрытие с помощью крестика и Escape)
@@ -108,7 +125,6 @@ string Game::getLocationName(int screenIndex) const
 	};
 	return names[screenIndex];
 }
-
 
 void Game::initBackgrounds()
 {
@@ -244,16 +260,23 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition)
 void Game::initLootTextures() {
 	// Загрузка текстур закопанного лута для каждого биома
 	std::string buriedPaths[3] = {
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootdes.png",
 		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootjun.png",
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootarc.png",
-		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootdes.png"
+		"C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootarc.png"
 	};
 
 	for (int i = 0; i < 3; ++i) {
 		if (!buriedTextures[i].loadFromFile(buriedPaths[i])) {
-			// Обработка ошибки загрузки
+			std::cerr << "Failed to load buried texture for biome " << i << "\n";
+			// Создаём заглушку с маркировкой биома
+			sf::Image placeholder;
+			placeholder.create(128, 128, i == 0 ? sf::Color(210, 180, 140) :
+				(i == 1 ? sf::Color(34, 139, 34) :
+					sf::Color(173, 216, 230)));
+			buriedTextures[i].loadFromImage(placeholder);
 		}
 	}
+
 
 	// Загрузка текстур раскопанного лута
 	std::string dugOutPaths[4] = {
@@ -265,52 +288,102 @@ void Game::initLootTextures() {
 
 	for (int i = 0; i < 4; ++i) {
 		if (!dugOutTextures[i].loadFromFile(dugOutPaths[i])) {
-			// Обработка ошибки загрузки
+			std::cerr << "Failed to load dug out texture " << i << "\n";
+			// Создаём заглушку с маркировкой типа лута
+			sf::Image placeholder;
+			placeholder.create(128, 128, i == 0 ? sf::Color(139, 69, 19) :
+				(i == 1 ? sf::Color(0, 100, 0) :
+					(i == 2 ? sf::Color(255, 255, 255) :
+						sf::Color(255, 192, 203))));
+			dugOutTextures[i].loadFromImage(placeholder);
 		}
 	}
 }
 
-// Инициализация зон раскопок
+
 void Game::initDigSites() {
-	digSites.resize(6); // Для всех экранов, но заполним только 3,4,5
+	digSites.resize(6); // Для всех экранов
 
-	// Пустыня (экран 3)
-	for (int i = 0; i < 4; ++i) {
-		sf::Vector2f pos(100 + i * 200, 150 + (i % 2) * 200);
-		LootType type = static_cast<LootType>(rand() % 5); // Случайный тип лута
-		digSites[3].emplace_back(buriedTextures[0], dugOutTextures[static_cast<int>(type)], pos, type);
-	}
+	const float windowWidth = 1024.f;
+	const float windowHeight = 577.f;
 
-	// Джунгли (экран 4)
-	for (int i = 0; i < 4; ++i) {
-		sf::Vector2f pos(150 + i * 180, 100 + (i % 2) * 250);
-		LootType type = static_cast<LootType>(rand() % 5);
-		digSites[4].emplace_back(buriedTextures[1], dugOutTextures[static_cast<int>(type)], pos, type);
-	}
+	// Пустыня (экран 3) - 5 лутов в форме буквы X
+	std::vector<sf::Vector2f> desertPositions = {
+		{windowWidth * 0.3f, windowHeight * 0.3f},  // Левый верх
+		{windowWidth * 0.7f, windowHeight * 0.3f},  // Правый верх
+		{windowWidth * 0.5f, windowHeight * 0.5f},  // Центр
+		{windowWidth * 0.3f, windowHeight * 0.7f},  // Левый низ
+		{windowWidth * 0.7f, windowHeight * 0.7f}   // Правый низ
+	};
 
-	// Арктика (экран 5)
-	for (int i = 0; i < 4; ++i) {
-		sf::Vector2f pos(80 + i * 220, 120 + (i % 2) * 220);
-		LootType type = static_cast<LootType>(rand() % 5);
-		digSites[5].emplace_back(buriedTextures[2], dugOutTextures[static_cast<int>(type)], pos, type);
-	}
+	// Джунгли (экран 4) - 5 лутов в форме плюса
+	std::vector<sf::Vector2f> junglePositions = {
+		{windowWidth * 0.5f, windowHeight * 0.2f},  // Верх
+		{windowWidth * 0.2f, windowHeight * 0.5f},  // Лево
+		{windowWidth * 0.5f, windowHeight * 0.5f},  // Центр
+		{windowWidth * 0.8f, windowHeight * 0.5f},  // Право
+		{windowWidth * 0.5f, windowHeight * 0.8f}   // Низ
+	};
+
+	// Арктика (экран 5) - 5 лутов в форме дома
+	std::vector<sf::Vector2f> arcticaPositions = {
+		{windowWidth * 0.5f, windowHeight * 0.2f},  // Крыша верх
+		{windowWidth * 0.3f, windowHeight * 0.4f},  // Крыша лево
+		{windowWidth * 0.7f, windowHeight * 0.4f},  // Крыша право
+		{windowWidth * 0.4f, windowHeight * 0.7f},  // Фундамент лево
+		{windowWidth * 0.6f, windowHeight * 0.7f}   // Фундамент право
+	};
+
+	// Инициализация для каждого биома (теперь по 5 лутов)
+	auto initLootForBiome = [&](int screen, BiomeType biome, const std::vector<sf::Vector2f>& positions) {
+		for (int i = 0; i < 5; ++i) {  // Теперь 5 лутов
+			LootType type = static_cast<LootType>(rand() % 5);
+			int textureIndex = type == LootType::NOTHING ? 0 : static_cast<int>(type);
+			digSites[screen].emplace_back(
+				buriedTextures[static_cast<int>(biome)],
+				dugOutTextures[textureIndex],
+				positions[i],
+				type,
+				biome
+			);
+		}
+		};
+
+	initLootForBiome(3, BiomeType::DESERT, desertPositions);
+	initLootForBiome(4, BiomeType::JUNGLE, junglePositions);
+	initLootForBiome(5, BiomeType::ARCTICA, arcticaPositions);
 }
 
 // Обработка раскопок
 void Game::handleDigging() {
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
-		// Проверяем, находится ли игрок на экране с раскопками
 		if (currentScreen == 3 || currentScreen == 4 || currentScreen == 5) {
-			// Проверяем пересечение с зонами раскопок
-			sf::Vector2f playerCenter = playerSprite.getPosition();
-			playerCenter.x += playerSprite.getGlobalBounds().width / 2;
-			playerCenter.y += playerSprite.getGlobalBounds().height / 2;
+			sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
+			sf::Vector2f playerCenter(
+				playerBounds.left + playerBounds.width / 2,
+				playerBounds.top + playerBounds.height / 2
+			);
 
 			for (auto& loot : digSites[currentScreen]) {
-				if (!loot.getIsDug() && loot.contains(playerCenter)) {
+				sf::FloatRect lootBounds = loot.getGlobalBounds();
+
+				// Уменьшенный радиус взаимодействия (соответствует новому размеру)
+				const float interactionRadius = 60.0f;  // Было 100.0f
+
+				sf::Vector2f lootCenter(
+					lootBounds.left + lootBounds.width / 2,
+					lootBounds.top + lootBounds.height / 2
+				);
+
+				float distance = std::sqrt(
+					std::pow(playerCenter.x - lootCenter.x, 2) +
+					std::pow(playerCenter.y - lootCenter.y, 2)
+				);
+
+				if (!loot.getIsDug() && distance < interactionRadius) {
 					loot.dig();
-					// Можно добавить звук или эффект раскопок
-					break; // Раскапываем только один лут за раз
+					// Можно добавить звук раскопок
+					break;
 				}
 			}
 		}
@@ -353,31 +426,94 @@ void Game::update() {
 	handleDigging();
 }
 
-// отрисовка игры
 void Game::render()
 {
-	window->clear();
-	window->draw(backgroundSprites[currentScreen]);
+	// 1. Очистка окна
+	window->clear(sf::Color(30, 30, 30));
 
-	// Отрисовка зон раскопок для текущего экрана
-	if (currentScreen == 3 || currentScreen == 4 || currentScreen == 5) {
+	// 2. Отрисовка фона
+	if (currentScreen >= 0 && currentScreen < static_cast<int>(backgroundSprites.size())) {
+		window->draw(backgroundSprites[currentScreen]);
+	}
+
+	// 3. Отрисовка лутов (для экранов 3-5)
+	if (currentScreen >= 3 && currentScreen <= 5 &&
+		currentScreen < static_cast<int>(digSites.size())) {
+
 		for (const auto& loot : digSites[currentScreen]) {
 			loot.draw(*window);
+
+			// Отладочная информация
+			if (showDebugInfo) {
+				sf::Text lootText;
+				lootText.setFont(debugFont);
+				lootText.setCharacterSize(10);
+				lootText.setFillColor(sf::Color::Cyan);
+
+				char lootChar = '?';
+				switch (loot.getType()) {
+				case LootType::BONES: lootChar = 'B'; break;
+				case LootType::PLANT: lootChar = 'P'; break;
+				case LootType::TOOTH: lootChar = 'T'; break;
+				case LootType::UNICORN: lootChar = 'U'; break;
+				case LootType::NOTHING: lootChar = 'N'; break;
+				}
+
+				lootText.setString(std::string(1, lootChar));
+				sf::Vector2f pos = loot.getPosition();
+				lootText.setPosition(pos.x - 5, pos.y - 15);
+
+				window->draw(lootText);
+			}
 		}
 	}
 
-	// Временная отрисовка зон перехода (для отладки)
-	sf::RectangleShape debugZone;
-	debugZone.setFillColor(sf::Color(255, 0, 0, 120)); // Полупрозрачный красный
+	// 4. Отрисовка игрока
+	window->draw(playerSprite);
 
-	for (const auto& portal : screens[currentScreen]) {
-		sf::FloatRect zone = portal.getZoneRect();
-		debugZone.setPosition(zone.left, zone.top);
-		debugZone.setSize(sf::Vector2f(zone.width, zone.height));
-		window->draw(debugZone);
+	// 5. Отрисовка интерфейса
+	sf::Text uiText;
+	uiText.setFont(debugFont);
+	uiText.setCharacterSize(16);
+	uiText.setFillColor(sf::Color::White);
+	uiText.setPosition(10, 10);
+
+	std::string locationName;
+	switch (currentScreen) {
+	case 0: locationName = "База"; break;
+	case 1: locationName = "Магазин"; break;
+	case 2: locationName = "Музей"; break;
+	case 3: locationName = "Пустыня"; break;
+	case 4: locationName = "Джунгли"; break;
+	case 5: locationName = "Арктика"; break;
+	default: locationName = "Неизвестно";
 	}
 
-	window->draw(playerSprite);
-	window->display();
+	uiText.setString(locationName);
+	window->draw(uiText);
 
+	// 6. Отображение FPS (если включен debug)
+	if (showDebugInfo) {
+		static sf::Clock fpsClock;
+		static int frameCount = 0;
+		static float fps = 60.0f;
+
+		frameCount++;
+		if (fpsClock.getElapsedTime().asSeconds() >= 0.5f) {
+			fps = frameCount / fpsClock.restart().asSeconds();
+			frameCount = 0;
+		}
+
+		sf::Text fpsText;
+		fpsText.setFont(debugFont);
+		fpsText.setCharacterSize(14);
+		fpsText.setFillColor(sf::Color::Green);
+		fpsText.setPosition(window->getSize().x - 80, 10);
+		fpsText.setString("FPS: " + std::to_string(static_cast<int>(fps)));
+
+		window->draw(fpsText);
+	}
+
+	// 7. Отображение всего
+	window->display();
 }

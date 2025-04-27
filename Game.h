@@ -56,6 +56,9 @@ private:
 	void initLootTextures();
 	void initDigSites();
 	void handleDigging();
+	sf::Clock frameClock;
+	bool showDebugInfo; // Флаг для отображения отладочной информации
+	sf::Font debugFont;  // Шрифт для отладочного текста
 
 public:
 	Game();
@@ -63,7 +66,7 @@ public:
 
 	
 	const bool running() const; 
-
+	int countDugLoots();
 	void pollEvents();
 	void update(); 
 	void render();

@@ -1,26 +1,38 @@
 ﻿#include "Game.h"
 
 // конструктор и деструктор
-Game::Game()
+Game::Game() :
+	hunger(10),
+	money(1000),
+	fossils(0),
+	supplies(0),
+	moveSpeed(8.0f),
+	currentScreen(0),
+	canUsePortal(true),
+	showMoneyWarning(false),
+	showDebugInfo(true),
+	locationText("Location: Base", 16, sf::Color::White, 10.f, 10.f),
+	hungerText("Hunger: 10/10", 16, sf::Color::White, 10.f, 30.f),
+	moneyText("Money: $1000", 16, sf::Color::White, 10.f, 50.f),
+	fossilsText("Fossils: 0", 16, sf::Color::White, 10.f, 70.f),
+	suppliesText("Supplies: 0", 16, sf::Color::White, 10.f, 90.f),
+	excavatedText("", 16, sf::Color::White, 10.f, 110.f),
+	controlsText("Controls: WASD - move, Y - dig", 14, sf::Color::White, 10.f, 527.f),
+	moneyWarningText("Not enough money!", 20, sf::Color::Red, 0.f, 0.f)
 {
-	this->initaializeVariables();
-	this->initWindow();
-	this->initPlayer();
-	this->initScreens();
-	this->initBackgrounds();
-	this->initLootTextures();
-	this->initDigSites();
-	moveSpeed = 8.0f;
-	currentScreen = 0;
-	previousPositions.reserve(10);  // Зарезервируем память для 10 позиций
+	initaializeVariables();
+	initWindow();
+	initPlayer();
+	initScreens();
+	initBackgrounds();
+	initLootTextures();
+	initDigSites();
 
-	showDebugInfo = true; // По умолчанию включено, можно выключить в релизе
 	if (!debugFont.loadFromFile("fonts/arial.ttf")) {
-		std::cerr << "Failed to load debug font, using default\n";
-		debugFont = sf::Font(); // Используем встроенный шрифт, если загрузка не удалась
+		debugFont = sf::Font();
 	}
-
 }
+
 Game::~Game()
 {
 	delete this->window;
@@ -116,12 +128,12 @@ void Game::initPlayer()
 string Game::getLocationName(int screenIndex) const
 {
 	static const std::vector<std::string> names = {
-		"baza",
-		"shop",
-		"museum",
-		"desert",
-		"jungle",
-		"arctica"
+		"Base",
+		"Shop",
+		"Museum",
+		"Desert",
+		"Jungle",
+		"Arctica"
 	};
 	return names[screenIndex];
 }
@@ -240,20 +252,36 @@ void Game::initScreens()
 }
 
 // выбор экрана
-void Game::changeScreen(int newScreen, sf::Vector2f newPosition)
-{
-	// Создаем объект ScreenHistory
-	ScreenHistory history;
-	history.screen = currentScreen; // Сохраняем текущий экран
-	history.position = playerSprite.getPosition(); // Сохраняем текущую позицию
+void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
+	// Проверяем, является ли новый экран локацией раскопок
+	bool isDigSite = (newScreen == 3 || newScreen == 4 || newScreen == 5);
 
-	// Добавляем в вектор
-	previousPositions.push_back(history); // Теперь тип совпадает
+	// Определяем стоимость перехода
+	int travelCost = 0;
+	if (newScreen == 3) travelCost = DESERT_COST;
+	else if (newScreen == 4) travelCost = JUNGLE_COST;
+	else if (newScreen == 5) travelCost = ARCTICA_COST;
+
+	// Проверяем достаточно ли денег для перехода на локацию раскопок
+	if (isDigSite && money < travelCost) {
+		showMoneyWarning = true;
+		moneyWarningClock.restart();
+		return;
+	}
+
+	// Сохраняем историю переходов
+	ScreenHistory history;
+	history.screen = currentScreen;
+	history.position = playerSprite.getPosition();
+	previousPositions.push_back(history);
+
+	// Списываем деньги только при успешном переходе на локацию раскопок
+	if (isDigSite) {
+		updateMoney(-travelCost);
+	}
 
 	currentScreen = newScreen;
 	playerSprite.setPosition(newPosition);
-
-
 }
 
 // Инициализация текстур лута
@@ -390,6 +418,15 @@ void Game::handleDigging() {
 	}
 }
 
+void Game::updateMoney(int change) {
+	money += change;
+	// Защита от отрицательных значений
+	if (money < 0) money = 0;
+
+	// Немедленное обновление текста
+	moneyText.setContent("Money: $" + std::to_string(money));
+}
+
 void Game::update() {
 	// Обработка событий
 	pollEvents();
@@ -424,6 +461,54 @@ void Game::update() {
 		canUsePortal = true;
 	}
 	handleDigging();
+}
+
+void Game::renderUI() {
+	locationText.setContent("Location: " + getLocationName(currentScreen));
+	hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
+	moneyText.setContent("Money: $" + std::to_string(money));
+	fossilsText.setContent("Fossils: " + std::to_string(fossils));
+	suppliesText.setContent("Supplies: " + std::to_string(supplies));
+
+	if (currentScreen >= 3 && currentScreen <= 5) {
+		excavatedText.setContent("Excavated: " + std::to_string(countDugLoots()) + "/5");
+	}
+	else {
+		excavatedText.setContent("");
+	}
+
+	locationText.draw(*window);
+	hungerText.draw(*window);
+	moneyText.draw(*window);
+	fossilsText.draw(*window);
+	suppliesText.draw(*window);
+	excavatedText.draw(*window);
+	controlsText.draw(*window);
+
+	if (showMoneyWarning && moneyWarningClock.getElapsedTime().asSeconds() < 2.0f) {
+		float xPos = (videoMode.width - moneyWarningText.getBounds().width) / 2;
+		moneyWarningText.setPosition(xPos, videoMode.height / 2);
+		moneyWarningText.draw(*window);
+	}
+	else {
+		showMoneyWarning = false;
+	}
+
+	if (showDebugInfo) {
+		static sf::Clock fpsClock;
+		static int frameCount = 0;
+		static float fps = 60.0f;
+
+		frameCount++;
+		if (fpsClock.getElapsedTime().asSeconds() >= 0.5f) {
+			fps = frameCount / fpsClock.restart().asSeconds();
+			frameCount = 0;
+		}
+
+		UIText fpsText("FPS: " + std::to_string(static_cast<int>(fps)),
+			16, sf::Color::Green, videoMode.width - 80.f, 10.f);
+		fpsText.draw(*window);
+	}
 }
 
 void Game::render()
@@ -472,25 +557,7 @@ void Game::render()
 	window->draw(playerSprite);
 
 	// 5. Отрисовка интерфейса
-	sf::Text uiText;
-	uiText.setFont(debugFont);
-	uiText.setCharacterSize(16);
-	uiText.setFillColor(sf::Color::White);
-	uiText.setPosition(10, 10);
-
-	std::string locationName;
-	switch (currentScreen) {
-	case 0: locationName = "База"; break;
-	case 1: locationName = "Магазин"; break;
-	case 2: locationName = "Музей"; break;
-	case 3: locationName = "Пустыня"; break;
-	case 4: locationName = "Джунгли"; break;
-	case 5: locationName = "Арктика"; break;
-	default: locationName = "Неизвестно";
-	}
-
-	uiText.setString(locationName);
-	window->draw(uiText);
+	renderUI();
 
 	// 6. Отображение FPS (если включен debug)
 	if (showDebugInfo) {

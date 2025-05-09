@@ -6,7 +6,7 @@ class UIText {
 private:
     sf::Text text;
     sf::Font font;
-    std::string defaultFontPath = "fonts/arial.ttf";
+    std::string defaultFontPath = "C:/Users/admin/Desktop/ÄÈÍÎÇÀÂĞ/ÄÈÍÎÇÀÂĞ/x64/Debug/Arial.ttf";
 
 public:
     UIText();

@@ -9,15 +9,12 @@ Game::Game() :
     currentScreen(0),
     canUsePortal(true),
     showMoneyWarning(false),
-    showDebugInfo(true),
-    locationText("Location: Base", 16, sf::Color::White, 10.f, 10.f),
-    hungerText("Hunger: 10/10", 16, sf::Color::White, 10.f, 30.f),
-    moneyText("Money: $1000", 16, sf::Color::White, 10.f, 50.f),
-    fossilsText("Fossils: 0", 16, sf::Color::White, 10.f, 70.f),
-    suppliesText("Supplies: 0", 16, sf::Color::White, 10.f, 90.f),
-    excavatedText("", 16, sf::Color::White, 10.f, 110.f),
-    controlsText("Controls: WASD - move, Y - dig", 14, sf::Color::White, 10.f, 527.f),
-    moneyWarningText("Not enough money!", 20, sf::Color::Red, 0.f, 0.f)
+    hungerText("Hunger: 10/10", 24, sf::Color::White, 10.f, 30.f),
+    moneyText("Money: $1000", 24, sf::Color::White, 10.f, 60.f),
+    fossilsText("Fossils: 0", 24, sf::Color::White, 10.f, 90.f),
+    suppliesText("Supplies: 0", 24, sf::Color::White, 10.f, 120.f),
+    excavatedText("", 24, sf::Color::White, 10.f, 150.f),
+    moneyWarningText("Not enough money!", 28, sf::Color::Red, 0.f, 0.f)
 {
     initaializeVariables();
     initWindow();
@@ -351,15 +348,14 @@ void Game::update() {
     handleDigging();
 }
 
-void Game::renderUI() {
-    // Обновляем текстовые элементы
-    locationText.setContent("Location: " + getLocationName(currentScreen));
+void Game::renderUI() 
+{
+    
     hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
     moneyText.setContent("Money: $" + std::to_string(money));
     fossilsText.setContent("Fossils: " + std::to_string(fossils));
     suppliesText.setContent("Supplies: " + std::to_string(supplies));
 
-    // Для экранов раскопок
     if (currentScreen >= 3 && currentScreen <= 5) {
         excavatedText.setContent("Excavated: " + std::to_string(countDugLoots()) + "/5");
     }
@@ -367,16 +363,13 @@ void Game::renderUI() {
         excavatedText.setContent("");
     }
 
-    // Отрисовываем элементы UI
-    locationText.draw(*window);
+    // Удаляем controlsText.draw(*window);
     hungerText.draw(*window);
     moneyText.draw(*window);
     fossilsText.draw(*window);
     suppliesText.draw(*window);
     excavatedText.draw(*window);
-    controlsText.draw(*window);
 
-    // Обработка предупреждения о деньгах
     if (showMoneyWarning && moneyWarningClock.getElapsedTime().asSeconds() < 2.0f) {
         float xPos = (videoMode.width - moneyWarningText.getBounds().width) / 2;
         moneyWarningText.setPosition(xPos, videoMode.height / 2);
@@ -385,23 +378,6 @@ void Game::renderUI() {
     else {
         showMoneyWarning = false;
     }
-
-    // Отладочная информация (FPS)
-    if (showDebugInfo) {
-        static sf::Clock fpsClock;
-        static int frameCount = 0;
-        static float fps = 60.0f;
-
-        frameCount++;
-        if (fpsClock.getElapsedTime().asSeconds() >= 0.5f) {
-            fps = frameCount / fpsClock.restart().asSeconds();
-            frameCount = 0;
-        }
-
-        UIText fpsText("FPS: " + std::to_string(static_cast<int>(fps)),
-            16, sf::Color::Green, videoMode.width - 80.f, 10.f);
-        fpsText.draw(*window);
-    }
 }
 
 void Game::render() {
@@ -409,33 +385,6 @@ void Game::render() {
 
     if (currentScreen >= 0 && currentScreen < static_cast<int>(backgroundSprites.size())) {
         window->draw(backgroundSprites[currentScreen]);
-    }
-
-    if (currentScreen >= 3 && currentScreen <= 5) {
-        for (const auto& loot : digSites[currentScreen]) {
-            loot.draw(*window);
-
-            if (showDebugInfo) {
-                sf::Text lootText;
-                lootText.setFont(debugFont);
-                lootText.setCharacterSize(10);
-                lootText.setFillColor(sf::Color::Cyan);
-
-                char lootChar = '?';
-                switch (loot.getType()) {
-                case LootType::BONES: lootChar = 'B'; break;
-                case LootType::PLANT: lootChar = 'P'; break;
-                case LootType::TOOTH: lootChar = 'T'; break;
-                case LootType::UNICORN: lootChar = 'U'; break;
-                case LootType::NOTHING: lootChar = 'N'; break;
-                }
-
-                lootText.setString(std::string(1, lootChar));
-                sf::Vector2f pos = loot.getPosition();
-                lootText.setPosition(pos.x - 5, pos.y - 15);
-                window->draw(lootText);
-            }
-        }
     }
 
     window->draw(playerSprite);

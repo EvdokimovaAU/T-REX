@@ -45,7 +45,6 @@ private:
     UIText fossilsText;
     UIText suppliesText;
     UIText excavatedText;
-    UIText controlsText;
     UIText moneyWarningText;
 
     // Игровые переменные
@@ -64,7 +63,6 @@ private:
     // Флаги состояния
     bool canUsePortal;
     bool showMoneyWarning;
-    bool showDebugInfo;
 
     // Таймеры
     sf::Clock clock;

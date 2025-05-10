@@ -170,40 +170,37 @@ void Game::initDigSites() {
     const float windowWidth = 1024.f;
     const float windowHeight = 577.f;
 
-    // Desert positions (X shape)
+    // Уменьшаем количество раскопок до 4 для каждого биома
+    // Позиции для пустыни (ромб)
     vector<sf::Vector2f> desertPositions = {
+        {windowWidth * 0.5f, windowHeight * 0.3f},
+        {windowWidth * 0.3f, windowHeight * 0.5f},
+        {windowWidth * 0.7f, windowHeight * 0.5f},
+        {windowWidth * 0.5f, windowHeight * 0.7f}
+    };
+
+    // Позиции для джунглей (квадрат)
+    vector<sf::Vector2f> junglePositions = {
         {windowWidth * 0.3f, windowHeight * 0.3f},
         {windowWidth * 0.7f, windowHeight * 0.3f},
-        {windowWidth * 0.5f, windowHeight * 0.5f},
         {windowWidth * 0.3f, windowHeight * 0.7f},
         {windowWidth * 0.7f, windowHeight * 0.7f}
     };
 
-    // Jungle positions (+ shape)
-    vector<sf::Vector2f> junglePositions = {
-        {windowWidth * 0.5f, windowHeight * 0.2f},
-        {windowWidth * 0.2f, windowHeight * 0.5f},
-        {windowWidth * 0.5f, windowHeight * 0.5f},
-        {windowWidth * 0.8f, windowHeight * 0.5f},
-        {windowWidth * 0.5f, windowHeight * 0.8f}
-    };
-
-    // Arctica positions (house shape)
+    // Позиции для арктики (линия)
     vector<sf::Vector2f> arcticaPositions = {
-        {windowWidth * 0.5f, windowHeight * 0.2f},
         {windowWidth * 0.3f, windowHeight * 0.4f},
+        {windowWidth * 0.5f, windowHeight * 0.5f},
         {windowWidth * 0.7f, windowHeight * 0.4f},
-        {windowWidth * 0.4f, windowHeight * 0.7f},
-        {windowWidth * 0.6f, windowHeight * 0.7f}
+        {windowWidth * 0.5f, windowHeight * 0.6f}
     };
 
     auto initLootForBiome = [&](int screen, BiomeType biome, const vector<sf::Vector2f>& positions) {
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 4; ++i) {  // Теперь создаем 4 раскопки вместо 5
             LootType type = static_cast<LootType>(rand() % 5);
-            int textureIndex = type == LootType::NOTHING ? 0 : static_cast<int>(type);
             digSites[screen].emplace_back(
                 buriedTextures[static_cast<int>(biome)],
-                dugOutTextures[textureIndex],
+                dugOutTextures[static_cast<int>(type)],
                 positions[i],
                 type,
                 biome
@@ -228,7 +225,8 @@ void Game::updateMoney(int change) {
 
 void Game::updateFossils(int change) {
     fossils += change;
-    fossils = std::max(fossils, 0);
+    fossils = std::max(fossils, 0); // Защита от отрицательных значений
+    fossilsText.setContent("Fossils: " + std::to_string(fossils)); // Сразу обновляем текст
 }
 
 void Game::updateSupplies(int change) {
@@ -240,26 +238,12 @@ void Game::handleDigging() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
         if (currentScreen >= 3 && currentScreen <= 5 && hunger > 0) {
             sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
-            sf::Vector2f playerCenter(
-                playerBounds.left + playerBounds.width / 2,
-                playerBounds.top + playerBounds.height / 2
-            );
 
             for (auto& loot : digSites[currentScreen]) {
-                sf::FloatRect lootBounds = loot.getGlobalBounds();
-                sf::Vector2f lootCenter(
-                    lootBounds.left + lootBounds.width / 2,
-                    lootBounds.top + lootBounds.height / 2
-                );
-
-                float distance = std::sqrt(
-                    std::pow(playerCenter.x - lootCenter.x, 2) +
-                    std::pow(playerCenter.y - lootCenter.y, 2)
-                );
-
-                if (!loot.getIsDug() && distance < 60.0f) {
+                if (!loot.getIsDug() && playerBounds.intersects(loot.getGlobalBounds())) {
                     loot.dig();
                     updateHunger(-1);
+
                     if (loot.getType() != LootType::NOTHING) {
                         updateFossils(1);
                     }
@@ -274,6 +258,61 @@ void Game::handleTravelCost() {
     if (currentScreen == 3) updateMoney(-DESERT_COST);
     else if (currentScreen == 4) updateMoney(-JUNGLE_COST);
     else if (currentScreen == 5) updateMoney(-ARCTICA_COST);
+}
+
+void Game::renderUI() {
+    // 1. Обновляем текстовые элементы
+    hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
+    moneyText.setContent("Money: $" + std::to_string(money));
+    fossilsText.setContent("Fossils: " + std::to_string(fossils));
+    suppliesText.setContent("Supplies: " + std::to_string(supplies));
+
+    // 2. Отображаем счетчик раскопок только на экранах с лут-объектами
+    if (currentScreen >= 3 && currentScreen <= 5) {
+        int dugCount = 0;
+        if (currentScreen < digSites.size()) {
+            for (const auto& loot : digSites[currentScreen]) {
+                if (loot.getIsDug()) dugCount++;
+            }
+        }
+        excavatedText.setContent("Excavated: " + std::to_string(dugCount) + "/4");
+    }
+    else {
+        excavatedText.setContent("");
+    }
+
+    // 3. Отрисовка основных элементов UI
+    hungerText.draw(*window);
+    moneyText.draw(*window);
+    fossilsText.draw(*window);
+    suppliesText.draw(*window);
+    excavatedText.draw(*window);
+
+    // 4. Предупреждение о недостатке денег
+    if (showMoneyWarning && moneyWarningClock.getElapsedTime().asSeconds() < 2.0f) {
+        // Центрируем предупреждение
+        sf::FloatRect bounds = moneyWarningText.getBounds();
+        moneyWarningText.setPosition(
+            (window->getSize().x - bounds.width) / 2,
+            window->getSize().y / 2
+        );
+        moneyWarningText.draw(*window);
+    }
+    else {
+        showMoneyWarning = false;
+    }
+
+    // 5. Отладочная информация (только в debug-режиме)
+#ifdef _DEBUG
+    UIText debugText(
+        "Debug: Screen " + std::to_string(currentScreen),
+        14,
+        sf::Color::Green,
+        10.f,
+        window->getSize().y - 30.f
+    );
+    debugText.draw(*window);
+#endif
 }
 
 void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
@@ -348,45 +387,22 @@ void Game::update() {
     handleDigging();
 }
 
-void Game::renderUI() 
-{
-    
-    hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
-    moneyText.setContent("Money: $" + std::to_string(money));
-    fossilsText.setContent("Fossils: " + std::to_string(fossils));
-    suppliesText.setContent("Supplies: " + std::to_string(supplies));
-
-    if (currentScreen >= 3 && currentScreen <= 5) {
-        excavatedText.setContent("Excavated: " + std::to_string(countDugLoots()) + "/5");
-    }
-    else {
-        excavatedText.setContent("");
-    }
-
-    // Удаляем controlsText.draw(*window);
-    hungerText.draw(*window);
-    moneyText.draw(*window);
-    fossilsText.draw(*window);
-    suppliesText.draw(*window);
-    excavatedText.draw(*window);
-
-    if (showMoneyWarning && moneyWarningClock.getElapsedTime().asSeconds() < 2.0f) {
-        float xPos = (videoMode.width - moneyWarningText.getBounds().width) / 2;
-        moneyWarningText.setPosition(xPos, videoMode.height / 2);
-        moneyWarningText.draw(*window);
-    }
-    else {
-        showMoneyWarning = false;
-    }
-}
-
 void Game::render() {
     window->clear(sf::Color(30, 30, 30));
 
+    // Отрисовка фона
     if (currentScreen >= 0 && currentScreen < static_cast<int>(backgroundSprites.size())) {
         window->draw(backgroundSprites[currentScreen]);
     }
 
+    // Отрисовка раскопок
+    if (currentScreen >= 3 && currentScreen <= 5) {
+        for (const auto& loot : digSites[currentScreen]) {
+            loot.draw(*window);  // Эта строка отрисовывает раскопки
+        }
+    }
+
+    // Отрисовка игрока и UI
     window->draw(playerSprite);
     renderUI();
     window->display();

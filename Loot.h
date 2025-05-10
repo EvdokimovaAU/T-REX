@@ -3,11 +3,11 @@
 #include <string>
 
 enum class LootType {
-    BONES,
-    PLANT,
-    TOOTH,
-    UNICORN,
-    NOTHING
+    BONES,    // 0
+    PLANT,    // 1
+    TOOTH,    // 2
+    UNICORN,  // 3
+    NOTHING   // 4
 };
 
 enum class BiomeType {

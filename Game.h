@@ -18,7 +18,7 @@ struct ScreenHistory {
 
 class Game {
 private:
-
+    sf::Clock diggingClock;
     std::vector<sf::Vector2f> desertPositions;
     std::vector<sf::Vector2f> junglePositions;
     std::vector<sf::Vector2f> arcticaPositions;

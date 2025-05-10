@@ -147,23 +147,28 @@ void Game::initLootTextures() {
         }
     }
 
-    string dugOutPaths[4] = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/bones.png",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/plant.png",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/nothing.png",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/unicorn.png"
+    string dugOutPaths[5] = {
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/bones.png",    // LootType::BONES (0)
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/plant.png",    // LootType::PLANT (1)
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/tooth.png",  // LootType::NOTHING (2)
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/unicorn.png",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/nothing.png" 
     };
-
     for (int i = 0; i < 4; ++i) {
         if (!dugOutTextures[i].loadFromFile(dugOutPaths[i])) {
             sf::Image placeholder;
-            placeholder.create(128, 128, i == 0 ? sf::Color(139, 69, 19) :
-                (i == 1 ? sf::Color(0, 100, 0) :
-                    (i == 2 ? sf::Color(255, 255, 255) : sf::Color(255, 192, 203))));
+            placeholder.create(128, 128,
+                i == 0 ? sf::Color(139, 69, 19) :       // Кости - коричневый
+                (i == 1 ? sf::Color(0, 100, 0) :       // Растения - темно-зеленый
+                    (i == 2 ? sf::Color::Transparent :      // Ничего - прозрачный
+                        sf::Color(255, 192, 203))
+                    )
+            );            // Единорог - розовый
             dugOutTextures[i].loadFromImage(placeholder);
         }
     }
 }
+
 
 void Game::initDigSites() {
     digSites.resize(6);
@@ -238,17 +243,42 @@ void Game::handleDigging() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
         if (currentScreen >= 3 && currentScreen <= 5 && hunger > 0) {
             sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
+            Loot* closestLoot = nullptr;
+            float minDistance = std::numeric_limits<float>::max();
 
+            // Находим ближайший нераскопанный лут
             for (auto& loot : digSites[currentScreen]) {
                 if (!loot.getIsDug() && playerBounds.intersects(loot.getGlobalBounds())) {
-                    loot.dig();
-                    updateHunger(-1);
+                    sf::Vector2f playerCenter(
+                        playerBounds.left + playerBounds.width / 2,
+                        playerBounds.top + playerBounds.height / 2
+                    );
+                    sf::Vector2f lootCenter = loot.getPosition();
+                    float distance = std::sqrt(
+                        std::pow(playerCenter.x - lootCenter.x, 2) +
+                        std::pow(playerCenter.y - lootCenter.y, 2)
+                    );
 
-                    if (loot.getType() != LootType::NOTHING) {
-                        updateFossils(1);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestLoot = &loot;
                     }
-                    break;
                 }
+            }
+
+            // Раскапываем только ближайший лут
+            if (closestLoot != nullptr) {
+                closestLoot->dig();
+                updateHunger(-1);
+
+                if (closestLoot->getType() != LootType::NOTHING) {
+                    updateFossils(1);
+                }
+            }
+
+            if (diggingClock.getElapsedTime().asSeconds() > 0.3f) {
+                // код раскопки
+                diggingClock.restart();
             }
         }
     }

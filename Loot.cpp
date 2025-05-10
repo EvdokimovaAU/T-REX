@@ -28,7 +28,10 @@ void Loot::dig() {
 void Loot::draw(sf::RenderWindow& window) const {
     if (isDug) {
         if (dugOutSprite.getTexture()) {
-            window.draw(dugOutSprite);
+            // Не рисуем ничего для NOTHING
+            if (type != LootType::NOTHING) {
+                window.draw(dugOutSprite);
+            }
         }
     }
     else {

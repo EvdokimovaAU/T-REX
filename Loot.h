@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include <SFML/Graphics.hpp>
 #include <string>
 
@@ -36,7 +36,7 @@ public:
     LootType getType() const;
     BiomeType getBiome() const;
 
-    // Добавляем новые методы доступа
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     sf::Vector2f getPosition() const;
     sf::FloatRect getGlobalBounds() const;
 };

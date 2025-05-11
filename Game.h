@@ -2,6 +2,7 @@
 #include "Teleport.h"
 #include "Loot.h"
 #include "UIText.h"
+#include "DigAnimation.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <vector>
@@ -11,17 +12,23 @@
 using std::vector;
 using std::string;
 
-struct ScreenHistory {
+struct ScreenHistory 
+{
     int screen;
     sf::Vector2f position;
 };
 
-class Game {
+class Game 
+{
 private:
-    sf::Clock diggingClock;
-    std::vector<sf::Vector2f> desertPositions;
-    std::vector<sf::Vector2f> junglePositions;
-    std::vector<sf::Vector2f> arcticaPositions;
+    // Анимации инструментов
+    DigAnimation brushAnimation;   // Кисть (E)
+    DigAnimation shovelAnimation; // Лопата (R)
+    DigAnimation pickaxeAnimation; // Кирка (T)
+
+    // Игровые состояния
+    enum class Tool { BRUSH, SHOVEL, PICKAXE, NONE };
+    Tool currentTool;
 
     // Основные компоненты
     sf::RenderWindow* window;
@@ -41,10 +48,9 @@ private:
 
     // Текстуры
     sf::Texture buriedTextures[3];
-    sf::Texture dugOutTextures[4];
+    sf::Texture dugOutTextures[5];
 
     // UI элементы
-    UIText locationText;
     UIText hungerText;
     UIText moneyText;
     UIText fossilsText;
@@ -60,7 +66,7 @@ private:
     float moveSpeed;
     int currentScreen;
 
-    // Стоимости переходов
+    // Константы
     const int DESERT_COST = 300;
     const int JUNGLE_COST = 400;
     const int ARCTICA_COST = 550;
@@ -73,25 +79,26 @@ private:
     sf::Clock clock;
     sf::Clock portalClock;
     sf::Clock moneyWarningClock;
-    sf::Clock frameClock;
 
     // Шрифты
     sf::Font debugFont;
 
     // Приватные методы
-    void initaializeVariables();
+    void initVariables();
     void initWindow();
     void initPlayer();
     void initScreens();
     void initBackgrounds();
     void initLootTextures();
     void initDigSites();
+    void initAnimations();
     void updateHunger(int change);
     void updateMoney(int change);
     void updateFossils(int change);
     void updateSupplies(int change);
     void handleDigging();
-    void handleTravelCost();
+    void handleToolSelection();
+    void resetDigSites(int screen);
     void renderUI();
 
 public:

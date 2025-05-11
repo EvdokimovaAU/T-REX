@@ -9,6 +9,7 @@ Game::Game() :
     currentScreen(0),
     canUsePortal(true),
     showMoneyWarning(false),
+    currentTool(Tool::NONE),
     hungerText("Hunger: 10/10", 24, sf::Color::White, 10.f, 30.f),
     moneyText("Money: $1000", 24, sf::Color::White, 10.f, 60.f),
     fossilsText("Fossils: 0", 24, sf::Color::White, 10.f, 90.f),
@@ -16,13 +17,14 @@ Game::Game() :
     excavatedText("", 24, sf::Color::White, 10.f, 150.f),
     moneyWarningText("Not enough money!", 28, sf::Color::Red, 0.f, 0.f)
 {
-    initaializeVariables();
+    initVariables();
     initWindow();
     initPlayer();
     initScreens();
     initBackgrounds();
     initLootTextures();
     initDigSites();
+    initAnimations();
 
     if (!debugFont.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/Arial.ttf")) {
         debugFont = sf::Font();
@@ -33,7 +35,7 @@ Game::~Game() {
     delete window;
 }
 
-void Game::initaializeVariables() {
+void Game::initVariables() {
     window = nullptr;
 }
 
@@ -41,35 +43,43 @@ void Game::initWindow() {
     videoMode.height = 577;
     videoMode.width = 1024;
     window = new sf::RenderWindow(videoMode, "Paleontolog", sf::Style::Default);
-    window->setFramerateLimit(144);
+    window->setFramerateLimit(60);
 }
 
 void Game::initPlayer() {
-    std::string texturePath = "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/dino.png";
-    if (!playerTexture.loadFromFile(texturePath)) {
+    if (!playerTexture.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/dino.png")) {
         sf::Image placeholder;
         placeholder.create(64, 64, sf::Color::Red);
         playerTexture.loadFromImage(placeholder);
     }
     playerSprite.setTexture(playerTexture);
-
-    sf::Vector2f desiredSize(250.f, 170.f);
-    sf::Vector2u textureSize = playerTexture.getSize();
-    sf::Vector2f scale(desiredSize.x / textureSize.x, desiredSize.y / textureSize.y);
-    playerSprite.setScale(scale);
+    playerSprite.setScale(250.f / playerTexture.getSize().x, 170.f / playerTexture.getSize().y);
     playerSprite.setPosition(1024 / 2 - 125, 577 / 2 - 85);
 }
 
-string Game::getLocationName(int screenIndex) const {
-    static const vector<string> names = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/baza.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/shop.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/museum.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/desert.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/jungle.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/arctica.jpg"
-    };
-    return names[screenIndex];
+void Game::initAnimations() {
+    // Кисть (E)
+    brushAnimation.loadFrames({
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/b1.png",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/b2.png",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/b3.png"
+        });
+    brushAnimation.setScale(0.2f);
+
+    // Лопата (R)
+    shovelAnimation.loadFrames({
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/l1.png",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/l2.png",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/l3.png"
+        });
+    shovelAnimation.setScale(0.2f);
+    // Кирка (T)
+    pickaxeAnimation.loadFrames({
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/k1.png",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/k2.png",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/k3.png"
+        });
+    pickaxeAnimation.setScale(0.2f);
 }
 
 void Game::initBackgrounds() {
@@ -92,10 +102,10 @@ void Game::initBackgrounds() {
             backgroundTextures[i].loadFromImage(placeholder);
         }
         backgroundSprites[i].setTexture(backgroundTextures[i]);
-
-        float scaleX = 1024.f / backgroundTextures[i].getSize().x;
-        float scaleY = 577.f / backgroundTextures[i].getSize().y;
-        backgroundSprites[i].setScale(scaleX, scaleY);
+        backgroundSprites[i].setScale(
+            1024.f / backgroundTextures[i].getSize().x,
+            577.f / backgroundTextures[i].getSize().y
+        );
     }
 }
 
@@ -132,7 +142,7 @@ void Game::initScreens() {
 }
 
 void Game::initLootTextures() {
-    // Загрузка текстур для закопанных объектов (по биомам)
+    // Загрузка текстур для закопанных объектов
     string buriedPaths[3] = {
         "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootdes.png",  // DESERT
         "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootjun.png",  // JUNGLE
@@ -141,13 +151,11 @@ void Game::initLootTextures() {
 
     for (int i = 0; i < 3; ++i) {
         if (!buriedTextures[i].loadFromFile(buriedPaths[i])) {
-            // Создаем placeholder-текстуры для каждого биома
             sf::Image placeholder;
             placeholder.create(128, 128,
-                i == 0 ? sf::Color(210, 180, 140) :  // Песок для пустыни
-                (i == 1 ? sf::Color(34, 139, 34) :   // Зеленый для джунглей
-                    sf::Color(173, 216, 230))           // Голубой для арктики
-                    );
+                i == 0 ? sf::Color(210, 180, 140) :  // Песок
+                (i == 1 ? sf::Color(34, 139, 34) :   // Зеленый
+                    sf::Color(173, 216, 230)));           // Голубой
             buriedTextures[i].loadFromImage(placeholder);
         }
     }
@@ -161,24 +169,17 @@ void Game::initLootTextures() {
         "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/nothing.png"   // NOTHING
     };
 
-    for (int i = 0; i < 5; ++i) {  // Теперь загружаем все 5 типов
+    for (int i = 0; i < 5; ++i) {
         if (!dugOutTextures[i].loadFromFile(dugOutPaths[i])) {
-            // Создаем понятные placeholder-цвета для каждого типа
             sf::Image placeholder;
             placeholder.create(128, 128,
-                i == 0 ? sf::Color(139, 69, 19) :    // Коричневый для костей
-                (i == 1 ? sf::Color(0, 100, 0) :     // Темно-зеленый для растений
-                    (i == 2 ? sf::Color(210, 180, 140) : // Песочный для зубов
-                        (i == 3 ? sf::Color(255, 192, 203) : // Розовый для единорога
-                            sf::Color(200, 200, 200))))           // Серый для "ничего"
-                    );
+                i == 0 ? sf::Color(139, 69, 19) :    // Кости
+                (i == 1 ? sf::Color(0, 100, 0) :     // Растения
+                    (i == 2 ? sf::Color(210, 180, 140) : // Зубы
+                        (i == 3 ? sf::Color(255, 192, 203) : // Единорог
+                            sf::Color(200, 200, 200))))
+                    );         // Ничего
             dugOutTextures[i].loadFromImage(placeholder);
-
-            // Вывод отладочной информации
-            std::cout << "Created placeholder for loot type " << i << std::endl;
-        }
-        else {
-            std::cout << "Successfully loaded texture: " << dugOutPaths[i] << std::endl;
         }
     }
 }
@@ -188,8 +189,7 @@ void Game::initDigSites() {
     const float windowWidth = 1024.f;
     const float windowHeight = 577.f;
 
-    // Уменьшаем количество раскопок до 4 для каждого биома
-    // Позиции для пустыни (ромб)
+    // Пустыня (ромб)
     vector<sf::Vector2f> desertPositions = {
         {windowWidth * 0.5f, windowHeight * 0.3f},
         {windowWidth * 0.3f, windowHeight * 0.5f},
@@ -197,7 +197,7 @@ void Game::initDigSites() {
         {windowWidth * 0.5f, windowHeight * 0.7f}
     };
 
-    // Позиции для джунглей (квадрат)
+    // Джунгли (квадрат)
     vector<sf::Vector2f> junglePositions = {
         {windowWidth * 0.3f, windowHeight * 0.3f},
         {windowWidth * 0.7f, windowHeight * 0.3f},
@@ -205,7 +205,7 @@ void Game::initDigSites() {
         {windowWidth * 0.7f, windowHeight * 0.7f}
     };
 
-    // Позиции для арктики (линия)
+    // Арктика (линия)
     vector<sf::Vector2f> arcticaPositions = {
         {windowWidth * 0.3f, windowHeight * 0.4f},
         {windowWidth * 0.5f, windowHeight * 0.5f},
@@ -214,7 +214,7 @@ void Game::initDigSites() {
     };
 
     auto initLootForBiome = [&](int screen, BiomeType biome, const vector<sf::Vector2f>& positions) {
-        for (int i = 0; i < 4; ++i) {  // Теперь создаем 4 раскопки вместо 5
+        for (int i = 0; i < 4; ++i) {
             LootType type = static_cast<LootType>(rand() % 5);
             digSites[screen].emplace_back(
                 buriedTextures[static_cast<int>(biome)],
@@ -231,161 +231,97 @@ void Game::initDigSites() {
     initLootForBiome(5, BiomeType::ARCTICA, arcticaPositions);
 }
 
+void Game::handleDigging() {
+    static sf::Clock digClock;
+    const float digCooldown = 0.3f;
+
+    if (digClock.getElapsedTime().asSeconds() < digCooldown) return;
+    if (currentScreen < 3 || currentScreen > 5) return;
+    if (hunger <= 0) return;
+
+    sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
+    Loot* closestLoot = nullptr;
+    float minDistance = std::numeric_limits<float>::max();
+    const float maxDigDistance = 100.0f;
+
+    for (auto& loot : digSites[currentScreen]) {
+        if (!loot.getIsDug() && playerBounds.intersects(loot.getGlobalBounds())) {
+            sf::Vector2f playerCenter = {
+                playerBounds.left + playerBounds.width / 2,
+                playerBounds.top + playerBounds.height / 2
+            };
+            float distance = std::sqrt(
+                std::pow(playerCenter.x - loot.getPosition().x, 2) +
+                std::pow(playerCenter.y - loot.getPosition().y, 2)
+            );
+
+            if (distance < minDistance && distance <= maxDigDistance) {
+                minDistance = distance;
+                closestLoot = &loot;
+            }
+        }
+    }
+
+    if (closestLoot != nullptr) {
+        sf::Vector2f animPosition = closestLoot->getPosition();
+        animPosition.x -= 45.f;  // Было 25, теперь 45 (смещение влево на 20 пикселей)
+        animPosition.y -= 25.f;  // Вертикальное смещение без изменений
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+            brushAnimation.setPosition(animPosition);
+            brushAnimation.play();
+            closestLoot->dig();
+            updateHunger(-1);
+            if (closestLoot->getType() != LootType::NOTHING) {
+                updateFossils(1);
+            }
+            digClock.restart();
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+            shovelAnimation.setPosition(animPosition);
+            shovelAnimation.play();
+            closestLoot->dig();
+            updateHunger(-1);
+            if (closestLoot->getType() != LootType::NOTHING) {
+                updateFossils(1);
+            }
+            digClock.restart();
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
+            pickaxeAnimation.setPosition(animPosition);
+            pickaxeAnimation.play();
+            closestLoot->dig();
+            updateHunger(-1);
+            if (closestLoot->getType() != LootType::NOTHING) {
+                updateFossils(1);
+            }
+            digClock.restart();
+        }
+    }
+}
+
 void Game::updateHunger(int change) {
     hunger += change;
     hunger = std::clamp(hunger, 0, 10);
+    hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
 }
 
 void Game::updateMoney(int change) {
     money += change;
     money = std::max(money, 0);
+    moneyText.setContent("Money: $" + std::to_string(money));
 }
 
 void Game::updateFossils(int change) {
     fossils += change;
-    fossils = std::max(fossils, 0); // Защита от отрицательных значений
-    fossilsText.setContent("Fossils: " + std::to_string(fossils)); // Сразу обновляем текст
+    fossils = std::max(fossils, 0);
+    fossilsText.setContent("Fossils: " + std::to_string(fossils));
 }
 
 void Game::updateSupplies(int change) {
     supplies += change;
     supplies = std::max(supplies, 0);
-}
-
-void Game::handleDigging() {
-    // Проверяем, что прошло достаточно времени с последней раскопки
-    static sf::Clock digCooldownClock;
-    const float digCooldown = 0.5f; // Задержка в 0.5 секунды
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y) &&
-        digCooldownClock.getElapsedTime().asSeconds() >= digCooldown)
-    {
-        digCooldownClock.restart(); // Сбрасываем таймер
-
-        if (currentScreen >= 3 && currentScreen <= 5 && hunger > 0) {
-            sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
-            Loot* closestLoot = nullptr;
-            float minDistance = std::numeric_limits<float>::max();
-            const float maxDigDistance = 100.0f; // Максимальная дистанция для раскопки
-
-            // Находим ближайший нераскопанный лут в пределах досягаемости
-            for (auto& loot : digSites[currentScreen]) {
-                if (!loot.getIsDug() && playerBounds.intersects(loot.getGlobalBounds())) {
-                    sf::Vector2f playerCenter(
-                        playerBounds.left + playerBounds.width / 2,
-                        playerBounds.top + playerBounds.height / 2
-                    );
-                    sf::Vector2f lootCenter = loot.getPosition();
-                    float distance = std::sqrt(
-                        std::pow(playerCenter.x - lootCenter.x, 2) +
-                        std::pow(playerCenter.y - lootCenter.y, 2)
-                    );
-
-                    // Проверяем, что лут достаточно близко
-                    if (distance < minDistance && distance <= maxDigDistance) {
-                        minDistance = distance;
-                        closestLoot = &loot;
-                    }
-                }
-            }
-
-            // Раскапываем только ближайший лут
-            if (closestLoot != nullptr) {
-                closestLoot->dig();
-                updateHunger(-1);
-
-                if (closestLoot->getType() != LootType::NOTHING) {
-                    updateFossils(1);
-                }
-            }
-        }
-    }
-}
-
-void Game::handleTravelCost() {
-    if (currentScreen == 3) updateMoney(-DESERT_COST);
-    else if (currentScreen == 4) updateMoney(-JUNGLE_COST);
-    else if (currentScreen == 5) updateMoney(-ARCTICA_COST);
-}
-
-void Game::renderUI() {
-    // 1. Обновляем текстовые элементы
-    hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
-    moneyText.setContent("Money: $" + std::to_string(money));
-    fossilsText.setContent("Fossils: " + std::to_string(fossils));
     suppliesText.setContent("Supplies: " + std::to_string(supplies));
-
-    // 2. Отображаем счетчик раскопок только на экранах с лут-объектами
-    if (currentScreen >= 3 && currentScreen <= 5) {
-        int dugCount = 0;
-        if (currentScreen < digSites.size()) {
-            for (const auto& loot : digSites[currentScreen]) {
-                if (loot.getIsDug()) dugCount++;
-            }
-        }
-        excavatedText.setContent("Excavated: " + std::to_string(dugCount) + "/4");
-    }
-    else {
-        excavatedText.setContent("");
-    }
-
-    // 3. Отрисовка основных элементов UI
-    hungerText.draw(*window);
-    moneyText.draw(*window);
-    fossilsText.draw(*window);
-    suppliesText.draw(*window);
-    excavatedText.draw(*window);
-
-    // 4. Предупреждение о недостатке денег
-    if (showMoneyWarning && moneyWarningClock.getElapsedTime().asSeconds() < 2.0f) {
-        // Центрируем предупреждение
-        sf::FloatRect bounds = moneyWarningText.getBounds();
-        moneyWarningText.setPosition(
-            (window->getSize().x - bounds.width) / 2,
-            window->getSize().y / 2
-        );
-        moneyWarningText.draw(*window);
-    }
-    else {
-        showMoneyWarning = false;
-    }
-
-    // 5. Отладочная информация (только в debug-режиме)
-#ifdef _DEBUG
-    UIText debugText(
-        "Debug: Screen " + std::to_string(currentScreen),
-        14,
-        sf::Color::Green,
-        10.f,
-        window->getSize().y - 30.f
-    );
-    debugText.draw(*window);
-#endif
-}
-
-void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
-    int cost = 0;
-    if (newScreen == 3) cost = DESERT_COST;
-    else if (newScreen == 4) cost = JUNGLE_COST;
-    else if (newScreen == 5) cost = ARCTICA_COST;
-
-    if (cost > 0 && money < cost) {
-        showMoneyWarning = true;
-        moneyWarningClock.restart();
-        return;
-    }
-
-    ScreenHistory history;
-    history.screen = currentScreen;
-    history.position = playerSprite.getPosition();
-    previousPositions.push_back(history);
-
-    currentScreen = newScreen;
-    playerSprite.setPosition(newPosition);
-
-    if (cost > 0) {
-        updateMoney(-cost);
-    }
 }
 
 void Game::pollEvents() {
@@ -403,21 +339,31 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
-    pollEvents();
-
     float deltaTime = clock.restart().asSeconds();
-    float speed = moveSpeed * deltaTime * 60.f;
 
+    // Обновление анимаций
+    brushAnimation.update(deltaTime);
+    shovelAnimation.update(deltaTime);
+    pickaxeAnimation.update(deltaTime);
+
+    // Обработка ввода
+    pollEvents();
+    handleDigging();
+
+    // Движение игрока
+    float speed = moveSpeed * deltaTime * 60.f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) playerSprite.move(-speed, 0);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) playerSprite.move(speed, 0);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) playerSprite.move(0, -speed);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) playerSprite.move(0, speed);
 
+    // Ограничение позиции игрока
     playerSprite.setPosition(
         std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - playerSprite.getGlobalBounds().width)),
         std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - playerSprite.getGlobalBounds().height))
     );
 
+    // Телепортация
     if (canUsePortal) {
         for (const auto& portal : screens[currentScreen]) {
             if (playerSprite.getGlobalBounds().intersects(portal.getZoneRect())) {
@@ -432,28 +378,172 @@ void Game::update() {
         canUsePortal = true;
     }
 
-    handleDigging();
+    // Уменьшение голода со временем
+    static float hungerTimer = 0;
+    hungerTimer += deltaTime;
+    if (hungerTimer >= 10.f && hunger > 0) {
+        updateHunger(-1);
+        hungerTimer = 0;
+    }
 }
 
 void Game::render() {
-    window->clear(sf::Color(30, 30, 30));
+    window->clear();
 
     // Отрисовка фона
-    if (currentScreen >= 0 && currentScreen < static_cast<int>(backgroundSprites.size())) {
-        window->draw(backgroundSprites[currentScreen]);
-    }
+    window->draw(backgroundSprites[currentScreen]);
 
-    // Отрисовка раскопок
+    // Отрисовка лута
     if (currentScreen >= 3 && currentScreen <= 5) {
         for (const auto& loot : digSites[currentScreen]) {
-            loot.draw(*window);  // Эта строка отрисовывает раскопки
+            loot.draw(*window);
         }
     }
 
-    // Отрисовка игрока и UI
+    // Отрисовка анимаций
+    brushAnimation.draw(*window);
+    shovelAnimation.draw(*window);
+    pickaxeAnimation.draw(*window);
+
+    // Отрисовка игрока
     window->draw(playerSprite);
+
+    // Отрисовка UI
     renderUI();
+
     window->display();
+}
+
+void Game::renderUI() {
+    // Обновление текстовых элементов
+    hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
+    moneyText.setContent("Money: $" + std::to_string(money));
+    fossilsText.setContent("Fossils: " + std::to_string(fossils));
+    suppliesText.setContent("Supplies: " + std::to_string(supplies));
+
+    // Счетчик раскопок
+    if (currentScreen >= 3 && currentScreen <= 5) {
+        int dugCount = countDugLoots();
+        excavatedText.setContent("Excavated: " + std::to_string(dugCount) + "/4");
+    }
+    else {
+        excavatedText.setContent("");
+    }
+
+    // Отрисовка основных элементов UI
+    hungerText.draw(*window);
+    moneyText.draw(*window);
+    fossilsText.draw(*window);
+    suppliesText.draw(*window);
+    excavatedText.draw(*window);
+
+    // Предупреждение о недостатке денег
+    if (showMoneyWarning && moneyWarningClock.getElapsedTime().asSeconds() < 2.0f) {
+        sf::FloatRect bounds = moneyWarningText.getBounds();
+        moneyWarningText.setPosition(
+            (window->getSize().x - bounds.width) / 2,
+            window->getSize().y / 2
+        );
+        moneyWarningText.draw(*window);
+    }
+    else {
+        showMoneyWarning = false;
+    }
+
+    // Отображение текущего инструмента
+    std::string toolText;
+    switch (currentTool) {
+    case Tool::BRUSH: toolText = "Tool: Brush (E)"; break;
+    case Tool::SHOVEL: toolText = "Tool: Shovel (R)"; break;
+    case Tool::PICKAXE: toolText = "Tool: Pickaxe (T)"; break;
+    default: toolText = "Tool: None (Press E/R/T)"; break;
+    }
+
+    UIText toolInfoText(toolText, 20, sf::Color::White, 10.f, 180.f);
+    toolInfoText.draw(*window);
+}
+
+void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
+    int cost = 0;
+    if (newScreen == 3) cost = DESERT_COST;
+    else if (newScreen == 4) cost = JUNGLE_COST;
+    else if (newScreen == 5) cost = ARCTICA_COST;
+
+    if (cost > 0 && money < cost) {
+        showMoneyWarning = true;
+        moneyWarningClock.restart();
+        return;
+    }
+
+    // Сохранение истории позиций
+    if (currentScreen >= 3 && currentScreen <= 5) {
+        ScreenHistory history;
+        history.screen = currentScreen;
+        history.position = playerSprite.getPosition();
+        previousPositions.push_back(history);
+    }
+
+    // Сброс раскопок при входе на новый экран
+    if (newScreen >= 3 && newScreen <= 5) {
+        resetDigSites(newScreen);
+    }
+
+    currentScreen = newScreen;
+    playerSprite.setPosition(newPosition);
+
+    if (cost > 0) {
+        updateMoney(-cost);
+    }
+}
+
+void Game::resetDigSites(int screen) {
+    if (screen < 3 || screen > 5) return;
+
+    digSites[screen].clear();
+
+    const float windowWidth = 1024.f;
+    const float windowHeight = 577.f;
+    vector<sf::Vector2f> positions;
+    BiomeType biome;
+
+    if (screen == 3) {
+        positions = {
+            {windowWidth * 0.5f, windowHeight * 0.3f},
+            {windowWidth * 0.3f, windowHeight * 0.5f},
+            {windowWidth * 0.7f, windowHeight * 0.5f},
+            {windowWidth * 0.5f, windowHeight * 0.7f}
+        };
+        biome = BiomeType::DESERT;
+    }
+    else if (screen == 4) {
+        positions = {
+            {windowWidth * 0.3f, windowHeight * 0.3f},
+            {windowWidth * 0.7f, windowHeight * 0.3f},
+            {windowWidth * 0.3f, windowHeight * 0.7f},
+            {windowWidth * 0.7f, windowHeight * 0.7f}
+        };
+        biome = BiomeType::JUNGLE;
+    }
+    else if (screen == 5) {
+        positions = {
+            {windowWidth * 0.3f, windowHeight * 0.4f},
+            {windowWidth * 0.5f, windowHeight * 0.5f},
+            {windowWidth * 0.7f, windowHeight * 0.4f},
+            {windowWidth * 0.5f, windowHeight * 0.6f}
+        };
+        biome = BiomeType::ARCTICA;
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        LootType type = static_cast<LootType>(rand() % 5);
+        digSites[screen].emplace_back(
+            buriedTextures[static_cast<int>(biome)],
+            dugOutTextures[static_cast<int>(type)],
+            positions[i],
+            type,
+            biome
+        );
+    }
 }
 
 int Game::countDugLoots() {
@@ -468,4 +558,16 @@ int Game::countDugLoots() {
 
 const bool Game::running() const {
     return window->isOpen();
+}
+
+string Game::getLocationName(int screenIndex) const {
+    static const vector<string> names = {
+        "Base",
+        "Shop",
+        "Museum",
+        "Desert",
+        "Jungle",
+        "Arctica"
+    };
+    return names[screenIndex];
 }

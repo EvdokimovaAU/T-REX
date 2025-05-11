@@ -132,43 +132,56 @@ void Game::initScreens() {
 }
 
 void Game::initLootTextures() {
+    // Загрузка текстур для закопанных объектов (по биомам)
     string buriedPaths[3] = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootdes.png",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootjun.png",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootarc.png"
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootdes.png",  // DESERT
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootjun.png",  // JUNGLE
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootarc.png"   // ARCTICA
     };
 
     for (int i = 0; i < 3; ++i) {
         if (!buriedTextures[i].loadFromFile(buriedPaths[i])) {
+            // Создаем placeholder-текстуры для каждого биома
             sf::Image placeholder;
-            placeholder.create(128, 128, i == 0 ? sf::Color(210, 180, 140) :
-                (i == 1 ? sf::Color(34, 139, 34) : sf::Color(173, 216, 230)));
+            placeholder.create(128, 128,
+                i == 0 ? sf::Color(210, 180, 140) :  // Песок для пустыни
+                (i == 1 ? sf::Color(34, 139, 34) :   // Зеленый для джунглей
+                    sf::Color(173, 216, 230))           // Голубой для арктики
+                    );
             buriedTextures[i].loadFromImage(placeholder);
         }
     }
 
+    // Загрузка текстур для раскопанных объектов
     string dugOutPaths[5] = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/bones.png",    // LootType::BONES (0)
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/plant.png",    // LootType::PLANT (1)
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/tooth.png",  // LootType::NOTHING (2)
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/unicorn.png",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/nothing.png" 
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/bones.png",    // BONES
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/plant.png",    // PLANT
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/tooth.png",    // TOOTH
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/unicorn.png",  // UNICORN
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/nothing.png"   // NOTHING
     };
-    for (int i = 0; i < 4; ++i) {
+
+    for (int i = 0; i < 5; ++i) {  // Теперь загружаем все 5 типов
         if (!dugOutTextures[i].loadFromFile(dugOutPaths[i])) {
+            // Создаем понятные placeholder-цвета для каждого типа
             sf::Image placeholder;
             placeholder.create(128, 128,
-                i == 0 ? sf::Color(139, 69, 19) :       // Кости - коричневый
-                (i == 1 ? sf::Color(0, 100, 0) :       // Растения - темно-зеленый
-                    (i == 2 ? sf::Color::Transparent :      // Ничего - прозрачный
-                        sf::Color(255, 192, 203))
-                    )
-            );            // Единорог - розовый
+                i == 0 ? sf::Color(139, 69, 19) :    // Коричневый для костей
+                (i == 1 ? sf::Color(0, 100, 0) :     // Темно-зеленый для растений
+                    (i == 2 ? sf::Color(210, 180, 140) : // Песочный для зубов
+                        (i == 3 ? sf::Color(255, 192, 203) : // Розовый для единорога
+                            sf::Color(200, 200, 200))))           // Серый для "ничего"
+                    );
             dugOutTextures[i].loadFromImage(placeholder);
+
+            // Вывод отладочной информации
+            std::cout << "Created placeholder for loot type " << i << std::endl;
+        }
+        else {
+            std::cout << "Successfully loaded texture: " << dugOutPaths[i] << std::endl;
         }
     }
 }
-
 
 void Game::initDigSites() {
     digSites.resize(6);
@@ -240,13 +253,22 @@ void Game::updateSupplies(int change) {
 }
 
 void Game::handleDigging() {
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)) {
+    // Проверяем, что прошло достаточно времени с последней раскопки
+    static sf::Clock digCooldownClock;
+    const float digCooldown = 0.5f; // Задержка в 0.5 секунды
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y) &&
+        digCooldownClock.getElapsedTime().asSeconds() >= digCooldown)
+    {
+        digCooldownClock.restart(); // Сбрасываем таймер
+
         if (currentScreen >= 3 && currentScreen <= 5 && hunger > 0) {
             sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
             Loot* closestLoot = nullptr;
             float minDistance = std::numeric_limits<float>::max();
+            const float maxDigDistance = 100.0f; // Максимальная дистанция для раскопки
 
-            // Находим ближайший нераскопанный лут
+            // Находим ближайший нераскопанный лут в пределах досягаемости
             for (auto& loot : digSites[currentScreen]) {
                 if (!loot.getIsDug() && playerBounds.intersects(loot.getGlobalBounds())) {
                     sf::Vector2f playerCenter(
@@ -259,7 +281,8 @@ void Game::handleDigging() {
                         std::pow(playerCenter.y - lootCenter.y, 2)
                     );
 
-                    if (distance < minDistance) {
+                    // Проверяем, что лут достаточно близко
+                    if (distance < minDistance && distance <= maxDigDistance) {
                         minDistance = distance;
                         closestLoot = &loot;
                     }
@@ -274,11 +297,6 @@ void Game::handleDigging() {
                 if (closestLoot->getType() != LootType::NOTHING) {
                     updateFossils(1);
                 }
-            }
-
-            if (diggingClock.getElapsedTime().asSeconds() > 0.3f) {
-                // код раскопки
-                diggingClock.restart();
             }
         }
     }

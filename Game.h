@@ -27,7 +27,9 @@ struct ScreenHistory
 class Game
 {
 private:
-   
+
+    sf::Texture diggingTexture;
+
 
     // Анимации инструментов
     DigAnimation brushAnimation;   // Кисть (E)
@@ -132,6 +134,6 @@ public:
     void applySuppliesEffect(int amount);
     void applySpeedModifier(float modifier);
     int getSuppliesCount() const;
+    const sf::Texture& getDiggingTexture() const { return diggingTexture; }
 
-   
 };

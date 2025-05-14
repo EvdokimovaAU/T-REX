@@ -3,7 +3,29 @@
 
 DigAnimation::DigAnimation()
     : currentFrame(0), frameDuration(0.1f), elapsedTime(0.f),
-    isPlaying(false), scale(1.0f) {
+    isPlaying(false), scale(1.0f), totalDuration(1.5f), currentTime(0.f) {
+}
+
+void DigAnimation::update(float deltaTime) {
+    if (!isPlaying || frames.empty()) return;
+
+    currentTime += deltaTime;
+    if (currentTime >= totalDuration) {
+        isPlaying = false;
+        return;
+    }
+
+    elapsedTime += deltaTime;
+    if (elapsedTime >= frameDuration) {
+        elapsedTime = 0.f;
+        currentFrame = (currentFrame + 1) % frames.size();
+        currentSprite.setTexture(frames[currentFrame]);
+        currentSprite.setScale(scale, scale);
+    }
+}
+
+void DigAnimation::setTotalDuration(float duration) {
+    totalDuration = duration;
 }
 
 void DigAnimation::loadFrames(const std::vector<std::string>& framePaths) {
@@ -39,23 +61,6 @@ void DigAnimation::play() {
         isPlaying = true;
         currentSprite.setTexture(frames[0]);
         currentSprite.setScale(scale, scale);
-    }
-}
-
-void DigAnimation::update(float deltaTime) {
-    if (!isPlaying || frames.empty()) return;
-
-    elapsedTime += deltaTime;
-    if (elapsedTime >= frameDuration) {
-        elapsedTime = 0.f;
-        currentFrame++;
-        if (currentFrame >= frames.size()) {
-            isPlaying = false;
-        }
-        else {
-            currentSprite.setTexture(frames[currentFrame]);
-            currentSprite.setScale(scale, scale);
-        }
     }
 }
 

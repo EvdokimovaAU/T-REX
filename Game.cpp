@@ -164,7 +164,7 @@ void Game::initLootTextures() {
             placeholder.create(128, 128,
                 i == 0 ? sf::Color(210, 180, 140) :  // Песок
                 (i == 1 ? sf::Color(34, 139, 34) :   // Зеленый
-                    sf::Color(173, 216, 230)));           // Голубой
+                    sf::Color(173, 216, 230)));      // Голубой
             buriedTextures[i].loadFromImage(placeholder);
         }
     }
@@ -186,10 +186,16 @@ void Game::initLootTextures() {
                 (i == 1 ? sf::Color(0, 100, 0) :     // Растения
                     (i == 2 ? sf::Color(210, 180, 140) : // Зубы
                         (i == 3 ? sf::Color(255, 192, 203) : // Единорог
-                            sf::Color(200, 200, 200))))
-            );         // Ничего
+                            sf::Color(200, 200, 200)))));
             dugOutTextures[i].loadFromImage(placeholder);
         }
+    }
+
+    // Загрузка текстуры для промежуточного состояния (используем ту же, что и закопанный, но темнее)
+    if (!diggingTexture.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/lootinprocess.png")) {
+        sf::Image placeholder;
+        placeholder.create(128, 128, sf::Color(150, 150, 150)); // Серый цвет для промежуточного состояния
+        diggingTexture.loadFromImage(placeholder);
     }
 }
 
@@ -252,8 +258,9 @@ void Game::handleDigging() {
     float minDistance = std::numeric_limits<float>::max();
     const float maxDigDistance = 100.0f;
 
+    // Находим ближайший лут для копания
     for (auto& loot : digSites[currentScreen]) {
-        if (!loot.getIsDug() && playerBounds.intersects(loot.getGlobalBounds())) {
+        if (!loot.getIsDug() && !loot.getIsDigging() && playerBounds.intersects(loot.getGlobalBounds())) {
             sf::Vector2f playerCenter = {
                 playerBounds.left + playerBounds.width / 2,
                 playerBounds.top + playerBounds.height / 2
@@ -277,46 +284,37 @@ void Game::handleDigging() {
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
             brushAnimation.setPosition(animPosition);
+            brushAnimation.setTotalDuration(1.5f); // Увеличиваем время анимации
             brushAnimation.play();
-            closestLoot->dig();
+            closestLoot->startDigging(); // Начинаем процесс раскопок
             updateHunger(-1);
 
             if (currentExcavation) {
                 currentExcavation->applyEffects();
-            }
-
-            if (closestLoot->getType() != LootType::NOTHING) {
-                updateFossils(1);
             }
             digClock.restart();
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
             shovelAnimation.setPosition(animPosition);
+            shovelAnimation.setTotalDuration(1.5f);
             shovelAnimation.play();
-            closestLoot->dig();
+            closestLoot->startDigging();
             updateHunger(-1);
 
             if (currentExcavation) {
                 currentExcavation->applyEffects();
             }
-
-            if (closestLoot->getType() != LootType::NOTHING) {
-                updateFossils(1);
-            }
             digClock.restart();
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
             pickaxeAnimation.setPosition(animPosition);
+            pickaxeAnimation.setTotalDuration(1.5f);
             pickaxeAnimation.play();
-            closestLoot->dig();
+            closestLoot->startDigging();
             updateHunger(-2);
 
             if (currentExcavation) {
                 currentExcavation->applyEffects();
-            }
-
-            if (closestLoot->getType() != LootType::NOTHING) {
-                updateFossils(1);
             }
             digClock.restart();
         }
@@ -364,10 +362,25 @@ void Game::pollEvents() {
 void Game::update() {
     float deltaTime = clock.restart().asSeconds();
 
-    // Обновление анимаций
+    // Обновление анимаций инструментов
     brushAnimation.update(deltaTime);
     shovelAnimation.update(deltaTime);
     pickaxeAnimation.update(deltaTime);
+
+    // Обновление состояния раскопок для всех лутов
+    if (currentScreen >= 3 && currentScreen <= 5) {
+        for (auto& loot : digSites[currentScreen]) {
+            loot.update(deltaTime);
+
+            // Если раскопка завершена, добавляем очки
+            if (loot.getIsDug() && !loot.getWasCounted()) {
+                if (loot.getType() != LootType::NOTHING) {
+                    updateFossils(1);
+                }
+                loot.setWasCounted(true);
+            }
+        }
+    }
 
     // Обработка ввода
     pollEvents();
@@ -412,28 +425,23 @@ void Game::update() {
 
 void Game::render() {
     window->clear();
-
-    // Отрисовка фона
     window->draw(backgroundSprites[currentScreen]);
 
-    // Отрисовка лута
+    // Сначала рисуем лут
     if (currentScreen >= 3 && currentScreen <= 5) {
         for (const auto& loot : digSites[currentScreen]) {
             loot.draw(*window);
         }
     }
 
-    // Отрисовка анимаций
+    // Затем анимации инструментов
     brushAnimation.draw(*window);
     shovelAnimation.draw(*window);
     pickaxeAnimation.draw(*window);
 
-    // Отрисовка игрока
+    // Игрок поверх всего
     window->draw(playerSprite);
-
-    // Отрисовка UI
     renderUI();
-
     window->display();
 }
 

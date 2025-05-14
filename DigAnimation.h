@@ -2,7 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 
-class DigAnimation {
+class DigAnimation 
+{
 private:
     std::vector<sf::Texture> frames;
     sf::Sprite currentSprite;
@@ -11,6 +12,9 @@ private:
     float elapsedTime;
     bool isPlaying;
     float scale;
+
+    float totalDuration;  // Общее время анимации
+    float currentTime;    // Текущее время анимации
 
 public:
     DigAnimation();
@@ -21,4 +25,5 @@ public:
     void update(float deltaTime);
     void draw(sf::RenderWindow& window);
     bool isPlayingAnimation() const;
+    void setTotalDuration(float duration);
 };

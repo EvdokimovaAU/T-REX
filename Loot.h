@@ -20,10 +20,16 @@ class Loot {
 private:
     sf::Sprite buriedSprite;
     sf::Sprite dugOutSprite;
+    sf::Sprite diggingSprite;
     sf::Vector2f position;
+    bool wasCounted;
     bool isDug;
     LootType type;
     BiomeType biome;
+
+    bool isDigging;           // Флаг, что идет процесс раскопок
+    float diggingTime;        // Таймер для раскопок
+    float requiredDiggingTime;// Необходимое время для раскопок
 
 public:
     Loot(const sf::Texture& buriedTexture, const sf::Texture& dugOutTexture,
@@ -36,10 +42,15 @@ public:
     LootType getType() const;
     BiomeType getBiome() const;
 
-  
+
     sf::Vector2f getPosition() const;
     sf::FloatRect getGlobalBounds() const;
 
     void setType(LootType newType) { type = newType; }
     void setBiome(BiomeType newBiome) { biome = newBiome; }
+    void setWasCounted(bool counted) { wasCounted = counted; }
+    bool getWasCounted() const { return wasCounted; }
+    void update(float deltaTime); // Добавляем метод обновления
+    bool getIsDigging() const;
+    void startDigging();
 };

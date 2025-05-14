@@ -324,6 +324,11 @@ void Game::handleDigging() {
 void Game::updateHunger(int change) {
     hunger += change;
     hunger = std::clamp(hunger, 0, 10);
+
+    if (hunger <= 0) {
+        isPlayerDead = true; // Персонаж умирает
+        deathTimer.restart();
+    }
     hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
 }
 
@@ -360,19 +365,28 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
+    // Получаем время между кадрами
     float deltaTime = clock.restart().asSeconds();
+    if (deltaTime > 0.1f) deltaTime = 0.1f; // Ограничиваем максимальное значение
+
+    // Если игрок умер, обрабатываем смерть
+    if (isPlayerDead) {
+        if (deathTimer.getElapsedTime().asSeconds() >= deathDelay) {
+            resetGame();
+        }
+        return; // Не обновляем игру, пока не перезапустим
+    }
 
     // Обновление анимаций инструментов
     brushAnimation.update(deltaTime);
     shovelAnimation.update(deltaTime);
     pickaxeAnimation.update(deltaTime);
 
-    // Обновление состояния раскопок для всех лутов
+    // Обновление состояния раскопок
     if (currentScreen >= 3 && currentScreen <= 5) {
         for (auto& loot : digSites[currentScreen]) {
             loot.update(deltaTime);
 
-            // Если раскопка завершена, добавляем очки
             if (loot.getIsDug() && !loot.getWasCounted()) {
                 if (loot.getType() != LootType::NOTHING) {
                     updateFossils(1);
@@ -386,21 +400,31 @@ void Game::update() {
     pollEvents();
     handleDigging();
 
-    // Движение игрока
-    float speed = moveSpeed * deltaTime * 60.f;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) playerSprite.move(-speed, 0);
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) playerSprite.move(speed, 0);
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) playerSprite.move(0, -speed);
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) playerSprite.move(0, speed);
+    // Движение игрока (только если жив)
+    if (!isPlayerDead) {
+        float speed = moveSpeed * deltaTime * 60.f;
+        sf::Vector2f movement(0.f, 0.f);
 
-    // Ограничение позиции игрока
-    playerSprite.setPosition(
-        std::max(0.f, std::min(playerSprite.getPosition().x, 1024.f - playerSprite.getGlobalBounds().width)),
-        std::max(0.f, std::min(playerSprite.getPosition().y, 577.f - playerSprite.getGlobalBounds().height))
-    );
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) movement.x -= speed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) movement.x += speed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) movement.y -= speed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) movement.y += speed;
+
+        playerSprite.move(movement);
+
+        // Ограничение позиции игрока
+        sf::Vector2f pos = playerSprite.getPosition();
+        float width = playerSprite.getGlobalBounds().width;
+        float height = playerSprite.getGlobalBounds().height;
+
+        playerSprite.setPosition(
+            std::max(0.f, std::min(pos.x, 1024.f - width)),
+            std::max(0.f, std::min(pos.y, 577.f - height))
+        );
+    }
 
     // Телепортация
-    if (canUsePortal) {
+    if (canUsePortal && !isPlayerDead) {
         for (const auto& portal : screens[currentScreen]) {
             if (playerSprite.getGlobalBounds().intersects(portal.getZoneRect())) {
                 changeScreen(portal.getTargetScreen(), portal.getTargetPosition());
@@ -417,31 +441,61 @@ void Game::update() {
     // Уменьшение голода со временем
     static float hungerTimer = 0;
     hungerTimer += deltaTime;
-    if (hungerTimer >= 10.f && hunger > 0) {
-        updateHunger(-1);
+    if (hungerTimer >= 10.f) {
+        if (hunger > 0) {
+            updateHunger(-1);
+        }
         hungerTimer = 0;
     }
+
+    // Проверка смерти игрока
+    checkPlayerDeath();
 }
 
 void Game::render() {
     window->clear();
+
+    // Отрисовка фона
     window->draw(backgroundSprites[currentScreen]);
 
-    // Сначала рисуем лут
+    // Отрисовка лута (только на экранах раскопок)
     if (currentScreen >= 3 && currentScreen <= 5) {
         for (const auto& loot : digSites[currentScreen]) {
             loot.draw(*window);
         }
     }
 
-    // Затем анимации инструментов
+    // Отрисовка анимаций инструментов
     brushAnimation.draw(*window);
     shovelAnimation.draw(*window);
     pickaxeAnimation.draw(*window);
 
-    // Игрок поверх всего
-    window->draw(playerSprite);
+    // Отрисовка игрока (если не умер)
+    if (!isPlayerDead) {
+        window->draw(playerSprite);
+    }
+
+    // Отрисовка UI
     renderUI();
+
+    // Отрисовка экрана смерти (если игрок умер)
+    if (isPlayerDead) {
+        // Затемнение экрана
+        sf::RectangleShape overlay(sf::Vector2f(1024, 577));
+        overlay.setFillColor(sf::Color(0, 0, 0, 150));
+        window->draw(overlay);
+
+        // Текст смерти
+        sf::Text deathText;
+        deathText.setFont(debugFont);
+        deathText.setString("You died from starvation!\nRestarting in " +
+            std::to_string(static_cast<int>(deathDelay - deathTimer.getElapsedTime().asSeconds())) + "...");
+        deathText.setCharacterSize(50);
+        deathText.setFillColor(sf::Color::Red);
+        deathText.setPosition(300, 250);
+        window->draw(deathText);
+    }
+
     window->display();
 }
 
@@ -622,4 +676,35 @@ void Game::applySpeedModifier(float modifier) {
 
 int Game::getSuppliesCount() const {
     return supplies;
+}
+
+void Game::checkPlayerDeath() {
+    if (hunger <= 0 && !isPlayerDead) {
+        isPlayerDead = true;
+        deathTimer.restart();
+        std::cout << "Player died from starvation!" << std::endl;
+    }
+}
+
+void Game::resetGame() {
+    // Сбрасываем все игровые параметры
+    hunger = 10;
+    money = 1000;
+    fossils = 0;
+    supplies = 0;
+    currentScreen = 0;
+    isPlayerDead = false;
+
+    // Сбрасываем позицию игрока
+    playerSprite.setPosition(1024 / 2 - 125, 577 / 2 - 85);
+
+    // Очищаем и пересоздаем раскопки
+    initDigSites();
+    initExcavations();
+
+    // Обновляем UI
+    hungerText.setContent("Hunger: 10/10");
+    moneyText.setContent("Money: $1000");
+    fossilsText.setContent("Fossils: 0");
+    suppliesText.setContent("Supplies: 0");
 }

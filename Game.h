@@ -30,6 +30,12 @@ private:
 
     sf::Texture diggingTexture;
 
+    bool isPlayerDead; // Флаг смерти игрока
+    sf::Clock deathTimer; // Таймер перед перезапуском
+    const float deathDelay = 3.0f; // Задержка перед перезапуском
+
+    void resetGame(); // Метод для сброса игры
+    void checkPlayerDeath(); // Проверка состояния игрока
 
     // Анимации инструментов
     DigAnimation brushAnimation;   // Кисть (E)

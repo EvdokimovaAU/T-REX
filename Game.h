@@ -1,26 +1,34 @@
 ﻿#pragma once 
+
 #include "Teleport.h"
 #include "Loot.h"
 #include "UIText.h"
 #include "DigAnimation.h"
+#include "Excavation.h"
+
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <memory>
+#include <unordered_map>
 
 using std::vector;
 using std::string;
 
-struct ScreenHistory 
+struct ScreenHistory
 {
     int screen;
     sf::Vector2f position;
 };
 
-class Game 
+class Game
 {
 private:
+   
+
     // Анимации инструментов
     DigAnimation brushAnimation;   // Кисть (E)
     DigAnimation shovelAnimation; // Лопата (R)
@@ -50,6 +58,10 @@ private:
     sf::Texture buriedTextures[3];
     sf::Texture dugOutTextures[5];
 
+    // Система раскопок
+    std::unique_ptr<Excavation> currentExcavation;
+    std::unordered_map<int, std::unique_ptr<Excavation>> excavations;
+
     // UI элементы
     UIText hungerText;
     UIText moneyText;
@@ -65,11 +77,6 @@ private:
     int supplies;
     float moveSpeed;
     int currentScreen;
-
-    // Константы
-    const int DESERT_COST = 300;
-    const int JUNGLE_COST = 400;
-    const int ARCTICA_COST = 550;
 
     // Флаги состояния
     bool canUsePortal;
@@ -92,18 +99,26 @@ private:
     void initLootTextures();
     void initDigSites();
     void initAnimations();
+    void initExcavations();
     void updateHunger(int change);
     void updateMoney(int change);
     void updateFossils(int change);
     void updateSupplies(int change);
     void handleDigging();
-    void handleToolSelection();
     void resetDigSites(int screen);
     void renderUI();
 
 public:
     Game();
     virtual ~Game();
+
+    static Game& instance() {
+        static Game instance;
+        return instance;
+    }
+
+    int getSupplies() const { return supplies; }
+    void updateMoveSpeed(float modifier) { moveSpeed *= modifier; }
 
     const bool running() const;
     int countDugLoots();
@@ -112,4 +127,11 @@ public:
     void render();
     string getLocationName(int screenIndex) const;
     void changeScreen(int newScreen, sf::Vector2f newPosition);
+
+    void applyHungerEffect(int amount);
+    void applySuppliesEffect(int amount);
+    void applySpeedModifier(float modifier);
+    int getSuppliesCount() const;
+
+   
 };

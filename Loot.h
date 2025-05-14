@@ -36,7 +36,10 @@ public:
     LootType getType() const;
     BiomeType getBiome() const;
 
-    // ��������� ����� ������ �������
+  
     sf::Vector2f getPosition() const;
     sf::FloatRect getGlobalBounds() const;
+
+    void setType(LootType newType) { type = newType; }
+    void setBiome(BiomeType newBiome) { biome = newBiome; }
 };

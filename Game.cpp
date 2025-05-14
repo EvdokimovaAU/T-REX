@@ -25,6 +25,7 @@ Game::Game() :
     initLootTextures();
     initDigSites();
     initAnimations();
+    initExcavations();
 
     if (!debugFont.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/Arial.ttf")) {
         debugFont = sf::Font();
@@ -57,6 +58,13 @@ void Game::initPlayer() {
     playerSprite.setPosition(1024 / 2 - 125, 577 / 2 - 85);
 }
 
+void Game::initExcavations() {
+    excavations.clear();
+    excavations[3] = std::make_unique<DesertExcavation>(this);
+    excavations[4] = std::make_unique<JungleExcavation>(this);
+    excavations[5] = std::make_unique<ArcticaExcavation>(this);
+}
+
 void Game::initAnimations() {
     // Кисть (E)
     brushAnimation.loadFrames({
@@ -73,6 +81,7 @@ void Game::initAnimations() {
         "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/l3.png"
         });
     shovelAnimation.setScale(0.2f);
+
     // Кирка (T)
     pickaxeAnimation.loadFrames({
         "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/k1.png",
@@ -178,7 +187,7 @@ void Game::initLootTextures() {
                     (i == 2 ? sf::Color(210, 180, 140) : // Зубы
                         (i == 3 ? sf::Color(255, 192, 203) : // Единорог
                             sf::Color(200, 200, 200))))
-                    );         // Ничего
+            );         // Ничего
             dugOutTextures[i].loadFromImage(placeholder);
         }
     }
@@ -189,7 +198,7 @@ void Game::initDigSites() {
     const float windowWidth = 1024.f;
     const float windowHeight = 577.f;
 
-    // Пустыня (ромб)
+    // Позиции для разных биомов
     vector<sf::Vector2f> desertPositions = {
         {windowWidth * 0.5f, windowHeight * 0.3f},
         {windowWidth * 0.3f, windowHeight * 0.5f},
@@ -197,7 +206,6 @@ void Game::initDigSites() {
         {windowWidth * 0.5f, windowHeight * 0.7f}
     };
 
-    // Джунгли (квадрат)
     vector<sf::Vector2f> junglePositions = {
         {windowWidth * 0.3f, windowHeight * 0.3f},
         {windowWidth * 0.7f, windowHeight * 0.3f},
@@ -205,7 +213,6 @@ void Game::initDigSites() {
         {windowWidth * 0.7f, windowHeight * 0.7f}
     };
 
-    // Арктика (линия)
     vector<sf::Vector2f> arcticaPositions = {
         {windowWidth * 0.3f, windowHeight * 0.4f},
         {windowWidth * 0.5f, windowHeight * 0.5f},
@@ -213,6 +220,7 @@ void Game::initDigSites() {
         {windowWidth * 0.5f, windowHeight * 0.6f}
     };
 
+    // Инициализация лута для каждого биома
     auto initLootForBiome = [&](int screen, BiomeType biome, const vector<sf::Vector2f>& positions) {
         for (int i = 0; i < 4; ++i) {
             LootType type = static_cast<LootType>(rand() % 5);
@@ -264,14 +272,19 @@ void Game::handleDigging() {
 
     if (closestLoot != nullptr) {
         sf::Vector2f animPosition = closestLoot->getPosition();
-        animPosition.x -= 45.f;  // Было 25, теперь 45 (смещение влево на 20 пикселей)
-        animPosition.y -= 25.f;  // Вертикальное смещение без изменений
+        animPosition.x -= 45.f;
+        animPosition.y -= 25.f;
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
             brushAnimation.setPosition(animPosition);
             brushAnimation.play();
             closestLoot->dig();
             updateHunger(-1);
+
+            if (currentExcavation) {
+                currentExcavation->applyEffects();
+            }
+
             if (closestLoot->getType() != LootType::NOTHING) {
                 updateFossils(1);
             }
@@ -282,6 +295,11 @@ void Game::handleDigging() {
             shovelAnimation.play();
             closestLoot->dig();
             updateHunger(-1);
+
+            if (currentExcavation) {
+                currentExcavation->applyEffects();
+            }
+
             if (closestLoot->getType() != LootType::NOTHING) {
                 updateFossils(1);
             }
@@ -291,7 +309,12 @@ void Game::handleDigging() {
             pickaxeAnimation.setPosition(animPosition);
             pickaxeAnimation.play();
             closestLoot->dig();
-            updateHunger(-1);
+            updateHunger(-2);
+
+            if (currentExcavation) {
+                currentExcavation->applyEffects();
+            }
+
             if (closestLoot->getType() != LootType::NOTHING) {
                 updateFossils(1);
             }
@@ -415,7 +438,6 @@ void Game::render() {
 }
 
 void Game::renderUI() {
-    // Обновление текстовых элементов
     hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
     moneyText.setContent("Money: $" + std::to_string(money));
     fossilsText.setContent("Fossils: " + std::to_string(fossils));
@@ -464,15 +486,18 @@ void Game::renderUI() {
 }
 
 void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
-    int cost = 0;
-    if (newScreen == 3) cost = DESERT_COST;
-    else if (newScreen == 4) cost = JUNGLE_COST;
-    else if (newScreen == 5) cost = ARCTICA_COST;
+    // Проверка стоимости перехода
+    if (excavations.find(newScreen) != excavations.end()) {
+        if (money < excavations[newScreen]->getCost()) {
+            showMoneyWarning = true;
+            moneyWarningClock.restart();
+            return;
+        }
+        updateMoney(-excavations[newScreen]->getCost());
+        currentExcavation = std::move(excavations[newScreen]);
 
-    if (cost > 0 && money < cost) {
-        showMoneyWarning = true;
-        moneyWarningClock.restart();
-        return;
+        // Генерация нового лута для экспедиции
+        resetDigSites(newScreen);  // Внутри уже использует generateLoot()
     }
 
     // Сохранение истории позиций
@@ -483,30 +508,20 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
         previousPositions.push_back(history);
     }
 
-    // Сброс раскопок при входе на новый экран
-    if (newScreen >= 3 && newScreen <= 5) {
-        resetDigSites(newScreen);
-    }
-
     currentScreen = newScreen;
     playerSprite.setPosition(newPosition);
-
-    if (cost > 0) {
-        updateMoney(-cost);
-    }
 }
 
 void Game::resetDigSites(int screen) {
     if (screen < 3 || screen > 5) return;
 
     digSites[screen].clear();
-
     const float windowWidth = 1024.f;
     const float windowHeight = 577.f;
     vector<sf::Vector2f> positions;
     BiomeType biome;
 
-    if (screen == 3) {
+    if (screen == 3) { // Пустыня
         positions = {
             {windowWidth * 0.5f, windowHeight * 0.3f},
             {windowWidth * 0.3f, windowHeight * 0.5f},
@@ -515,7 +530,7 @@ void Game::resetDigSites(int screen) {
         };
         biome = BiomeType::DESERT;
     }
-    else if (screen == 4) {
+    else if (screen == 4) { // Джунгли
         positions = {
             {windowWidth * 0.3f, windowHeight * 0.3f},
             {windowWidth * 0.7f, windowHeight * 0.3f},
@@ -524,7 +539,7 @@ void Game::resetDigSites(int screen) {
         };
         biome = BiomeType::JUNGLE;
     }
-    else if (screen == 5) {
+    else if (screen == 5) { // Арктика
         positions = {
             {windowWidth * 0.3f, windowHeight * 0.4f},
             {windowWidth * 0.5f, windowHeight * 0.5f},
@@ -534,8 +549,9 @@ void Game::resetDigSites(int screen) {
         biome = BiomeType::ARCTICA;
     }
 
+    // Используем currentExcavation для генерации лута
     for (int i = 0; i < 4; ++i) {
-        LootType type = static_cast<LootType>(rand() % 5);
+        LootType type = currentExcavation ? currentExcavation->generateLoot() : LootType::NOTHING;
         digSites[screen].emplace_back(
             buriedTextures[static_cast<int>(biome)],
             dugOutTextures[static_cast<int>(type)],
@@ -570,4 +586,20 @@ string Game::getLocationName(int screenIndex) const {
         "Arctica"
     };
     return names[screenIndex];
+}
+
+void Game::applyHungerEffect(int amount) {
+    updateHunger(-amount);
+}
+
+void Game::applySuppliesEffect(int amount) {
+    updateSupplies(-amount);
+}
+
+void Game::applySpeedModifier(float modifier) {
+    moveSpeed *= modifier;
+}
+
+int Game::getSuppliesCount() const {
+    return supplies;
 }

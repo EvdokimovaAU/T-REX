@@ -494,10 +494,22 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
             return;
         }
         updateMoney(-excavations[newScreen]->getCost());
-        currentExcavation = std::move(excavations[newScreen]);
+
+        // Создаем новый экземпляр экспедиции при каждом входе
+        switch (newScreen) {
+        case 3:
+            currentExcavation = std::make_unique<DesertExcavation>(this);
+            break;
+        case 4:
+            currentExcavation = std::make_unique<JungleExcavation>(this);
+            break;
+        case 5:
+            currentExcavation = std::make_unique<ArcticaExcavation>(this);
+            break;
+        }
 
         // Генерация нового лута для экспедиции
-        resetDigSites(newScreen);  // Внутри уже использует generateLoot()
+        resetDigSites(newScreen);
     }
 
     // Сохранение истории позиций

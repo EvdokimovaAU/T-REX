@@ -28,6 +28,8 @@ class Game
 {
 private:
 
+
+    sf::Texture brokenLootTexture;
     sf::Texture diggingTexture;
 
     bool isPlayerDead; // Флаг смерти игрока

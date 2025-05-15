@@ -16,15 +16,29 @@ ArcticaExcavation::ArcticaExcavation(Game* game) : Excavation(game) {
     possibleLootTypes = { LootType::NOTHING, LootType::PLANT, LootType::TOOTH }; // Арктика: plant, nothing и tooth
 }
 
+// DesertExcavation
+void DesertExcavation::applyEffects() {
+    // Пустыня больше не тратит голод здесь
+}
+
+// JungleExcavation
+void JungleExcavation::applyEffects() {
+    game->applySpeedModifier(0.8f); // Только эффект замедления
+}
+
+// ArcticaExcavation
+void ArcticaExcavation::applyEffects() {
+    if (game->getSuppliesCount() > 0) {
+        game->applySuppliesEffect(1); // Только трата припасов
+    }
+    // Без эффекта голода
+}
+
 LootType DesertExcavation::generateLoot() {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(0, possibleLootTypes.size() - 1);
     return possibleLootTypes[dist(gen)];
-}
-
-void DesertExcavation::applyEffects() {
-    game->applyHungerEffect(1);
 }
 
 int DesertExcavation::getCost() const { return 300; }
@@ -37,10 +51,6 @@ LootType JungleExcavation::generateLoot() {
     return possibleLootTypes[dist(gen)];
 }
 
-void JungleExcavation::applyEffects() {
-    game->applySpeedModifier(0.8f);
-}
-
 int JungleExcavation::getCost() const { return 400; }
 std::string JungleExcavation::getName() const { return "Jungle Expedition"; }
 
@@ -49,15 +59,6 @@ LootType ArcticaExcavation::generateLoot() {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(0, possibleLootTypes.size() - 1);
     return possibleLootTypes[dist(gen)];
-}
-
-void ArcticaExcavation::applyEffects() {
-    if (game->getSuppliesCount() > 0) {
-        game->applySuppliesEffect(1);
-    }
-    else {
-        game->applyHungerEffect(2);
-    }
 }
 
 int ArcticaExcavation::getCost() const { return 550; }

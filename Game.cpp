@@ -197,6 +197,12 @@ void Game::initLootTextures() {
         placeholder.create(128, 128, sf::Color(150, 150, 150)); // Серый цвет для промежуточного состояния
         diggingTexture.loadFromImage(placeholder);
     }
+
+    if (!brokenLootTexture.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/brokeloot.png")) {
+        sf::Image placeholder;
+        placeholder.create(128, 128, sf::Color(100, 100, 100));
+        brokenLootTexture.loadFromImage(placeholder);
+    }
 }
 
 void Game::initDigSites() {
@@ -219,7 +225,6 @@ void Game::initDigSites() {
         {windowWidth * 0.7f, windowHeight * 0.7f}
     };
 
-    // Измененные позиции для Арктики - разнесены дальше друг от друга
     vector<sf::Vector2f> arcticaPositions = {
         {windowWidth * 0.2f, windowHeight * 0.3f},  // Левая верхняя
         {windowWidth * 0.8f, windowHeight * 0.3f},  // Правая верхняя
@@ -227,18 +232,20 @@ void Game::initDigSites() {
         {windowWidth * 0.8f, windowHeight * 0.7f}   // Правая нижняя
     };
 
-    // Инициализация лута для каждого биома
-    auto initLootForBiome = [&](int screen, BiomeType biome, const vector<sf::Vector2f>& positions) {
-        for (int i = 0; i < 4; ++i) {
-            LootType type = static_cast<LootType>(rand() % 5);
-            digSites[screen].emplace_back(
-                buriedTextures[static_cast<int>(biome)],
-                dugOutTextures[static_cast<int>(type)],
-                positions[i],
-                type,
-                biome
-            );
-        }
+    // Лямбда для инициализации лута
+    auto initLootForBiome = [&](int screen, BiomeType biome,
+        const vector<sf::Vector2f>& positions) {
+            for (int i = 0; i < 4; ++i) {
+                LootType type = static_cast<LootType>(rand() % 5);
+                digSites[screen].emplace_back(
+                    buriedTextures[static_cast<int>(biome)],  // Закопанная текстура
+                    dugOutTextures[static_cast<int>(type)],    // Раскопанная текстура
+                    brokenLootTexture,                        // Сломанная текстура
+                    positions[i],                             // Позиция
+                    type,                                     // Тип лута
+                    biome                                     // Биом
+                );
+            }
         };
 
     initLootForBiome(3, BiomeType::DESERT, desertPositions);
@@ -254,12 +261,16 @@ void Game::handleDigging() {
     if (currentScreen < 3 || currentScreen > 5) return;
     if (hunger <= 0) return;
 
+    // Ждем завершения текущей анимации кисточки
+    if (brushAnimation.isPlayingAnimation() && !brushAnimation.isAnimationFinished()) {
+        return;
+    }
+
     sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
     Loot* closestLoot = nullptr;
     float minDistance = std::numeric_limits<float>::max();
     const float maxDigDistance = 100.0f;
 
-    // Находим ближайший лут для копания
     for (auto& loot : digSites[currentScreen]) {
         if (!loot.getIsDug() && !loot.getIsDigging() && playerBounds.intersects(loot.getGlobalBounds())) {
             sf::Vector2f playerCenter = {
@@ -283,41 +294,43 @@ void Game::handleDigging() {
         animPosition.x -= 45.f;
         animPosition.y -= 25.f;
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-            brushAnimation.setPosition(animPosition);
-            brushAnimation.setTotalDuration(1.5f); // Увеличиваем время анимации
-            brushAnimation.play();
-            closestLoot->startDigging(); // Начинаем процесс раскопок
-            updateHunger(-1);
+        if (closestLoot != nullptr) {
+            // ... существующий код ...
 
-            if (currentExcavation) {
-                currentExcavation->applyEffects();
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+                // Кисточка - без изменений
+                brushAnimation.setPosition(animPosition);
+                brushAnimation.play();
+                closestLoot->startDigging();
+                updateHunger(-1);
+                digClock.restart();
             }
-            digClock.restart();
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-            shovelAnimation.setPosition(animPosition);
-            shovelAnimation.setTotalDuration(1.5f);
-            shovelAnimation.play();
-            closestLoot->startDigging();
-            updateHunger(-1);
-
-            if (currentExcavation) {
-                currentExcavation->applyEffects();
+            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+                // Лопата - 20% шанс сломать
+                shovelAnimation.setPosition(animPosition);
+                shovelAnimation.play();
+                if (rand() % 100 < 20) {  // 20% шанс сломать
+                    closestLoot->breakLoot();
+                }
+                else {
+                    closestLoot->startDigging();
+                }
+                updateHunger(-1);
+                digClock.restart();
             }
-            digClock.restart();
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
-            pickaxeAnimation.setPosition(animPosition);
-            pickaxeAnimation.setTotalDuration(1.5f);
-            pickaxeAnimation.play();
-            closestLoot->startDigging();
-            updateHunger(-2);
-
-            if (currentExcavation) {
-                currentExcavation->applyEffects();
+            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
+                // Кирка - 40% шанс сломать
+                pickaxeAnimation.setPosition(animPosition);
+                pickaxeAnimation.play();
+                if (rand() % 100 < 40) {  // 40% шанс сломать
+                    closestLoot->breakLoot();
+                }
+                else {
+                    closestLoot->startDigging();
+                }
+                updateHunger(-2);
+                digClock.restart();
             }
-            digClock.restart();
         }
     }
 }
@@ -438,16 +451,6 @@ void Game::update() {
     }
     else if (portalClock.getElapsedTime().asSeconds() > 0.5f) {
         canUsePortal = true;
-    }
-
-    // Уменьшение голода со временем
-    static float hungerTimer = 0;
-    hungerTimer += deltaTime;
-    if (hungerTimer >= 10.f) {
-        if (hunger > 0) {
-            updateHunger(-1);
-        }
-        hungerTimer = 0;
     }
 
     // Проверка смерти игрока
@@ -617,20 +620,24 @@ void Game::resetDigSites(int screen) {
     }
     else if (screen == 5) { // Арктика
         positions = {
-            {windowWidth * 0.2f, windowHeight * 0.3f},  // Левая верхняя
-            {windowWidth * 0.8f, windowHeight * 0.3f},  // Правая верхняя
-            {windowWidth * 0.2f, windowHeight * 0.7f},  // Левая нижняя
-            {windowWidth * 0.8f, windowHeight * 0.7f}   // Правая нижняя
+            {windowWidth * 0.2f, windowHeight * 0.3f},
+            {windowWidth * 0.8f, windowHeight * 0.3f},
+            {windowWidth * 0.2f, windowHeight * 0.7f},
+            {windowWidth * 0.8f, windowHeight * 0.7f}
         };
         biome = BiomeType::ARCTICA;
     }
 
-    // Используем currentExcavation для генерации лута
+    // Генерация нового лута с учетом текущей экспедиции
     for (int i = 0; i < 4; ++i) {
-        LootType type = currentExcavation ? currentExcavation->generateLoot() : LootType::NOTHING;
+        LootType type = currentExcavation ?
+            currentExcavation->generateLoot() :
+            LootType::NOTHING;
+
         digSites[screen].emplace_back(
             buriedTextures[static_cast<int>(biome)],
             dugOutTextures[static_cast<int>(type)],
+            brokenLootTexture,  // Добавляем сломанную текстуру
             positions[i],
             type,
             biome

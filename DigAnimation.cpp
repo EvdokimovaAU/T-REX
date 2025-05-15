@@ -3,7 +3,8 @@
 
 DigAnimation::DigAnimation()
     : currentFrame(0), frameDuration(0.1f), elapsedTime(0.f),
-    isPlaying(false), scale(1.0f), totalDuration(1.5f), currentTime(0.f) {
+    isPlaying(false), scale(1.0f), totalDuration(1.5f),
+    currentTime(0.f), animationFinished(false) {
 }
 
 void DigAnimation::update(float deltaTime) {
@@ -12,6 +13,7 @@ void DigAnimation::update(float deltaTime) {
     currentTime += deltaTime;
     if (currentTime >= totalDuration) {
         isPlaying = false;
+        animationFinished = true;
         return;
     }
 
@@ -58,7 +60,9 @@ void DigAnimation::play() {
     if (!frames.empty()) {
         currentFrame = 0;
         elapsedTime = 0.f;
+        currentTime = 0.f;
         isPlaying = true;
+        animationFinished = false;
         currentSprite.setTexture(frames[0]);
         currentSprite.setScale(scale, scale);
     }
@@ -72,4 +76,8 @@ void DigAnimation::draw(sf::RenderWindow& window) {
 
 bool DigAnimation::isPlayingAnimation() const {
     return isPlaying;
+}
+
+bool DigAnimation::isAnimationFinished() const {
+    return animationFinished;
 }

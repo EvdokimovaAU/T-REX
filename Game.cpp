@@ -219,11 +219,12 @@ void Game::initDigSites() {
         {windowWidth * 0.7f, windowHeight * 0.7f}
     };
 
+    // Измененные позиции для Арктики - разнесены дальше друг от друга
     vector<sf::Vector2f> arcticaPositions = {
-        {windowWidth * 0.3f, windowHeight * 0.4f},
-        {windowWidth * 0.5f, windowHeight * 0.5f},
-        {windowWidth * 0.7f, windowHeight * 0.4f},
-        {windowWidth * 0.5f, windowHeight * 0.6f}
+        {windowWidth * 0.2f, windowHeight * 0.3f},  // Левая верхняя
+        {windowWidth * 0.8f, windowHeight * 0.3f},  // Правая верхняя
+        {windowWidth * 0.2f, windowHeight * 0.7f},  // Левая нижняя
+        {windowWidth * 0.8f, windowHeight * 0.7f}   // Правая нижняя
     };
 
     // Инициализация лута для каждого биома
@@ -615,10 +616,10 @@ void Game::resetDigSites(int screen) {
     }
     else if (screen == 5) { // Арктика
         positions = {
-            {windowWidth * 0.3f, windowHeight * 0.4f},
-            {windowWidth * 0.5f, windowHeight * 0.5f},
-            {windowWidth * 0.7f, windowHeight * 0.4f},
-            {windowWidth * 0.5f, windowHeight * 0.6f}
+            {windowWidth * 0.2f, windowHeight * 0.3f},  // Левая верхняя
+            {windowWidth * 0.8f, windowHeight * 0.3f},  // Правая верхняя
+            {windowWidth * 0.2f, windowHeight * 0.7f},  // Левая нижняя
+            {windowWidth * 0.8f, windowHeight * 0.7f}   // Правая нижняя
         };
         biome = BiomeType::ARCTICA;
     }

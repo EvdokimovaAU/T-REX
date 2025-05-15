@@ -257,22 +257,30 @@ void Game::handleDigging() {
     static sf::Clock digClock;
     const float digCooldown = 0.3f;
 
+    // Проверка базовых условий
     if (digClock.getElapsedTime().asSeconds() < digCooldown) return;
-    if (currentScreen < 3 || currentScreen > 5) return;
-    if (hunger <= 0) return;
+    if (currentScreen < 3 || currentScreen > 5) return; // Только на экранах раскопок
+    if (hunger <= 0) return; // Нельзя копать без сил
 
-    // Ждем завершения текущей анимации кисточки
-    if (brushAnimation.isPlayingAnimation() && !brushAnimation.isAnimationFinished()) {
-        return;
-    }
+    // Функция проверки состояния инструмента
+    auto canUseTool = [this](int durability, const std::string& toolName) {
+        if (durability <= 0) {
+            std::cout << toolName << " сломана! Вернитесь на базу для ремонта." << std::endl;
+            return false;
+        }
+        return true;
+        };
 
+    // Поиск ближайшего доступного лута
     sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
     Loot* closestLoot = nullptr;
     float minDistance = std::numeric_limits<float>::max();
     const float maxDigDistance = 100.0f;
 
     for (auto& loot : digSites[currentScreen]) {
-        if (!loot.getIsDug() && !loot.getIsDigging() && playerBounds.intersects(loot.getGlobalBounds())) {
+        if (!loot.getIsDug() && !loot.getIsDigging() && !loot.getIsBroken() &&
+            playerBounds.intersects(loot.getGlobalBounds())) {
+
             sf::Vector2f playerCenter = {
                 playerBounds.left + playerBounds.width / 2,
                 playerBounds.top + playerBounds.height / 2
@@ -289,50 +297,69 @@ void Game::handleDigging() {
         }
     }
 
+    // Если нашли лут для копания
     if (closestLoot != nullptr) {
         sf::Vector2f animPosition = closestLoot->getPosition();
         animPosition.x -= 45.f;
         animPosition.y -= 25.f;
 
-        if (closestLoot != nullptr) {
-            // ... существующий код ...
+        // Обработка кисточки (E)
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E) && canUseTool(tools.brushDurability, "Кисточка")) {
+            brushAnimation.setPosition(animPosition);
+            brushAnimation.play();
 
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-                // Кисточка - без изменений
-                brushAnimation.setPosition(animPosition);
-                brushAnimation.play();
+            bool success = (rand() % 100 > 30); // 70% успеха
+            if (success) {
                 closestLoot->startDigging();
-                updateHunger(-1);
-                digClock.restart();
+                tools.brushDurability -= 1; // -1 при успехе
             }
-            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-                // Лопата - 20% шанс сломать
-                shovelAnimation.setPosition(animPosition);
-                shovelAnimation.play();
-                if (rand() % 100 < 20) {  // 20% шанс сломать
-                    closestLoot->breakLoot();
-                }
-                else {
-                    closestLoot->startDigging();
-                }
-                updateHunger(-1);
-                digClock.restart();
+            else {
+                closestLoot->breakLoot();
+                tools.brushDurability -= 5; // -5 при неудаче
             }
-            else if (sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
-                // Кирка - 40% шанс сломать
-                pickaxeAnimation.setPosition(animPosition);
-                pickaxeAnimation.play();
-                if (rand() % 100 < 40) {  // 40% шанс сломать
-                    closestLoot->breakLoot();
-                }
-                else {
-                    closestLoot->startDigging();
-                }
-                updateHunger(-2);
-                digClock.restart();
+            updateHunger(-1);
+            digClock.restart();
+        }
+        // Обработка лопаты (R)
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R) && canUseTool(tools.shovelDurability, "Лопата")) {
+            shovelAnimation.setPosition(animPosition);
+            shovelAnimation.play();
+
+            bool success = (rand() % 100 > 20); // 80% успеха
+            if (success) {
+                closestLoot->startDigging();
+                tools.shovelDurability -= 1;
             }
+            else {
+                closestLoot->breakLoot();
+                tools.shovelDurability -= 5;
+            }
+            updateHunger(-1);
+            digClock.restart();
+        }
+        // Обработка кирки (T)
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::T) && canUseTool(tools.pickaxeDurability, "Кирка")) {
+            pickaxeAnimation.setPosition(animPosition);
+            pickaxeAnimation.play();
+
+            bool success = (rand() % 100 > 40); // 60% успеха
+            if (success) {
+                closestLoot->startDigging();
+                tools.pickaxeDurability -= 1;
+            }
+            else {
+                closestLoot->breakLoot();
+                tools.pickaxeDurability -= 5;
+            }
+            updateHunger(-2);
+            digClock.restart();
         }
     }
+
+    // Проверка сломанных инструментов
+    if (tools.brushDurability < 0) tools.brushDurability = 0;
+    if (tools.shovelDurability < 0) tools.shovelDurability = 0;
+    if (tools.pickaxeDurability < 0) tools.pickaxeDurability = 0;
 }
 
 void Game::updateHunger(int change) {
@@ -541,18 +568,57 @@ void Game::renderUI() {
 
     // Отображение текущего инструмента
     std::string toolText;
-    switch (currentTool) {
-    case Tool::BRUSH: toolText = "Tool: Brush (E)"; break;
-    case Tool::SHOVEL: toolText = "Tool: Shovel (R)"; break;
-    case Tool::PICKAXE: toolText = "Tool: Pickaxe (T)"; break;
-    default: toolText = "Tool: None (Press E/R/T)"; break;
-    }
 
     UIText toolInfoText(toolText, 20, sf::Color::White, 10.f, 180.f);
     toolInfoText.draw(*window);
+
+    // Отображение состояния инструментов в правом верхнем углу
+    const float rightMargin = 20.f;
+    const float topMargin = 20.f;
+    const float toolSpacing = 30.f;
+
+
+    // Кисточка (E)
+    UIText brushText(
+        "E: Brash " + std::to_string(tools.brushDurability) + "/5",
+        25,
+        tools.brushDurability > 0 ? sf::Color::White : sf::Color::Red,
+        window->getSize().x - rightMargin - 230.f,
+        topMargin
+    );
+    brushText.draw(*window);
+
+    // Лопата (R)
+    UIText shovelText(
+        "R: Shovel " + std::to_string(tools.shovelDurability) + "/10",
+        25,
+        tools.shovelDurability > 0 ? sf::Color::White : sf::Color::Red,
+        window->getSize().x - rightMargin - 230.f,
+        topMargin + toolSpacing
+    );
+    shovelText.draw(*window);
+
+    // Кирка (T)
+    UIText pickaxeText(
+        "T: Pickaxe " + std::to_string(tools.pickaxeDurability) + "/10",
+        25,
+        tools.pickaxeDurability > 0 ? sf::Color::White : sf::Color::Red,
+        window->getSize().x - rightMargin - 230.f,
+        topMargin + toolSpacing * 2
+    );
+    pickaxeText.draw(*window);
+
 }
 
+
 void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
+    // При возврате на базу (экран 0) восстанавливаем инструменты
+    if (newScreen == 0) {
+        tools.brushDurability = 5;
+        tools.shovelDurability = 10;
+        tools.pickaxeDurability = 10;
+    }
+
     // Проверка стоимости перехода
     if (excavations.find(newScreen) != excavations.end()) {
         if (money < excavations[newScreen]->getCost()) {

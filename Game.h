@@ -28,6 +28,11 @@ class Game
 {
 private:
 
+    struct {
+        int brushDurability = 5;
+        int shovelDurability = 10;
+        int pickaxeDurability = 10;
+    } tools;
 
     sf::Texture brokenLootTexture;
     sf::Texture diggingTexture;

@@ -3,7 +3,17 @@
 
 // DesertExcavation
 DesertExcavation::DesertExcavation(Game* game) : Excavation(game) {
-    possibleLootTypes = { LootType::NOTHING, LootType::BONES, LootType::PLANT };
+    possibleLootTypes = { LootType::NOTHING, LootType::PLANT, LootType::BONES }; // Пустыня: plant, nothing и bones
+}
+
+// JungleExcavation
+JungleExcavation::JungleExcavation(Game* game) : Excavation(game) {
+    possibleLootTypes = { LootType::NOTHING, LootType::PLANT, LootType::UNICORN }; // Джунгли: plant, nothing и unicorn
+}
+
+// ArcticaExcavation
+ArcticaExcavation::ArcticaExcavation(Game* game) : Excavation(game) {
+    possibleLootTypes = { LootType::NOTHING, LootType::PLANT, LootType::TOOTH }; // Арктика: plant, nothing и tooth
 }
 
 LootType DesertExcavation::generateLoot() {
@@ -20,11 +30,6 @@ void DesertExcavation::applyEffects() {
 int DesertExcavation::getCost() const { return 300; }
 std::string DesertExcavation::getName() const { return "Desert Expedition"; }
 
-// JungleExcavation
-JungleExcavation::JungleExcavation(Game* game) : Excavation(game) {
-    possibleLootTypes = { LootType::NOTHING, LootType::UNICORN, LootType::PLANT };
-}
-
 LootType JungleExcavation::generateLoot() {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -38,11 +43,6 @@ void JungleExcavation::applyEffects() {
 
 int JungleExcavation::getCost() const { return 400; }
 std::string JungleExcavation::getName() const { return "Jungle Expedition"; }
-
-// ArcticaExcavation
-ArcticaExcavation::ArcticaExcavation(Game* game) : Excavation(game) {
-    possibleLootTypes = { LootType::NOTHING, LootType::PLANT, LootType::TOOTH };
-}
 
 LootType ArcticaExcavation::generateLoot() {
     std::random_device rd;

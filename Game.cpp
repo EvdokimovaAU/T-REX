@@ -388,11 +388,12 @@ void Game::update() {
         for (auto& loot : digSites[currentScreen]) {
             loot.update(deltaTime);
 
+            // Исправленная проверка - теперь учитывается, что лут был выкопан И это не NOTHING
             if (loot.getIsDug() && !loot.getWasCounted()) {
                 if (loot.getType() != LootType::NOTHING) {
                     updateFossils(1);
                 }
-                loot.setWasCounted(true);
+                loot.setWasCounted(true); // Помечаем как учтенный в любом случае
             }
         }
     }

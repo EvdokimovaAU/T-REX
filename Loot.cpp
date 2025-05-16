@@ -20,7 +20,7 @@ Loot::Loot(const sf::Texture& buriedTexture,
     diggingSprite.setColor(sf::Color(150, 150, 150));
 
     // Установка масштаба для всех спрайтов
-    float scale = 0.4f;
+    float scale = 0.5f;
     buriedSprite.setScale(scale, scale);
     dugOutSprite.setScale(scale, scale);
     diggingSprite.setScale(scale, scale);

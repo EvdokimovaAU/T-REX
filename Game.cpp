@@ -10,12 +10,12 @@ Game::Game() :
     canUsePortal(true),
     showMoneyWarning(false),
     currentTool(Tool::NONE),
-    hungerText("Hunger: 10/10", 24, sf::Color::White, 10.f, 30.f),
-    moneyText("Money: $1000", 24, sf::Color::White, 10.f, 60.f),
-    fossilsText("Fossils: 0", 24, sf::Color::White, 10.f, 90.f),
-    suppliesText("Supplies: 0", 24, sf::Color::White, 10.f, 120.f),
-    excavatedText("", 24, sf::Color::White, 10.f, 150.f),
-    moneyWarningText("Not enough money!", 28, sf::Color::Red, 0.f, 0.f)
+    hungerText("Hunger: 10/10", 36, sf::Color::White, 20.f, 30.f),  // Увеличено
+    moneyText("Money: $1000", 36, sf::Color::White, 20.f, 80.f),     // Увеличено
+    fossilsText("Fossils: 0", 36, sf::Color::White, 20.f, 130.f),    // Увеличено
+    suppliesText("Supplies: 0", 36, sf::Color::White, 20.f, 180.f),  // Увеличено
+    excavatedText("", 36, sf::Color::White, 20.f, 230.f),            // Увеличено
+    moneyWarningText("Not enough money!", 42, sf::Color::Red, 0.f, 0.f)  // Увеличено
 {
     initVariables();
     initWindow();
@@ -41,8 +41,8 @@ void Game::initVariables() {
 }
 
 void Game::initWindow() {
-    videoMode.height = 577;
-    videoMode.width = 1024;
+    videoMode.height = 1080;
+    videoMode.width = 1920;
     window = new sf::RenderWindow(videoMode, "Paleontolog", sf::Style::Default);
     window->setFramerateLimit(60);
 }
@@ -55,7 +55,7 @@ void Game::initPlayer() {
     }
     playerSprite.setTexture(playerTexture);
     playerSprite.setScale(250.f / playerTexture.getSize().x, 170.f / playerTexture.getSize().y);
-    playerSprite.setPosition(1024 / 2 - 125, 577 / 2 - 85);
+    playerSprite.setPosition(1920 / 2 - 125, 1080 / 2 - 85);  // Обновлено для 1920x1080
 }
 
 void Game::initExcavations() {
@@ -96,32 +96,32 @@ void Game::initBackgrounds() {
     backgroundSprites.resize(6);
 
     vector<string> texturePaths = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/baza.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/shop.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/museum.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/desert.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/jungle.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/arctica.jpg"
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/baza.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/shop.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/museum.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/desert.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/jungle.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/arctica.jpg"
     };
 
     for (int i = 0; i < 6; ++i) {
         if (!backgroundTextures[i].loadFromFile(texturePaths[i])) {
             sf::Image placeholder;
-            placeholder.create(1024, 577, sf::Color::Red);
+            placeholder.create(1920, 1080, sf::Color::Red);  // Обновлено
             backgroundTextures[i].loadFromImage(placeholder);
         }
         backgroundSprites[i].setTexture(backgroundTextures[i]);
         backgroundSprites[i].setScale(
-            1024.f / backgroundTextures[i].getSize().x,
-            577.f / backgroundTextures[i].getSize().y
+            1920.f / backgroundTextures[i].getSize().x,  // Обновлено
+            1080.f / backgroundTextures[i].getSize().y   // Обновлено
         );
     }
 }
 
 void Game::initScreens() {
     screens.resize(6);
-    const float windowWidth = 1024.f;
-    const float windowHeight = 577.f;
+    const float windowWidth = 1920.f;  // Обновлено
+    const float windowHeight = 1080.f; // Обновлено
     const float playerWidth = playerSprite.getGlobalBounds().width;
     const float playerHeight = playerSprite.getGlobalBounds().height;
 
@@ -205,52 +205,54 @@ void Game::initLootTextures() {
     }
 }
 
-void Game::initDigSites() {
-    digSites.resize(6);
-    const float windowWidth = 1024.f;
-    const float windowHeight = 577.f;
+void Game::resetDigSites(int screen) {
+    if (screen < 3 || screen > 5) return;
 
-    // Позиции для разных биомов
-    vector<sf::Vector2f> desertPositions = {
-        {windowWidth * 0.5f, windowHeight * 0.3f},
-        {windowWidth * 0.3f, windowHeight * 0.5f},
-        {windowWidth * 0.7f, windowHeight * 0.5f},
-        {windowWidth * 0.5f, windowHeight * 0.7f}
-    };
+    digSites[screen].clear();
+    const float windowWidth = 1920.f;
+    const float windowHeight = 1080.f;
+    vector<sf::Vector2f> positions;
+    BiomeType biome;
 
-    vector<sf::Vector2f> junglePositions = {
-        {windowWidth * 0.3f, windowHeight * 0.3f},
-        {windowWidth * 0.7f, windowHeight * 0.3f},
-        {windowWidth * 0.3f, windowHeight * 0.7f},
-        {windowWidth * 0.7f, windowHeight * 0.7f}
-    };
-
-    vector<sf::Vector2f> arcticaPositions = {
-        {windowWidth * 0.2f, windowHeight * 0.3f},  // Левая верхняя
-        {windowWidth * 0.8f, windowHeight * 0.3f},  // Правая верхняя
-        {windowWidth * 0.2f, windowHeight * 0.7f},  // Левая нижняя
-        {windowWidth * 0.8f, windowHeight * 0.7f}   // Правая нижняя
-    };
-
-    // Лямбда для инициализации лута
-    auto initLootForBiome = [&](int screen, BiomeType biome,
-        const vector<sf::Vector2f>& positions) {
-            for (int i = 0; i < 4; ++i) {
-                LootType type = static_cast<LootType>(rand() % 5);
-                digSites[screen].emplace_back(
-                    buriedTextures[static_cast<int>(biome)],  // Закопанная текстура
-                    dugOutTextures[static_cast<int>(type)],    // Раскопанная текстура
-                    brokenLootTexture,                        // Сломанная текстура
-                    positions[i],                             // Позиция
-                    type,                                     // Тип лута
-                    biome                                     // Биом
-                );
-            }
+    if (screen == 3) { // Пустыня - более компактное расположение
+        positions = {
+            {windowWidth * 0.3f, windowHeight * 0.4f},
+            {windowWidth * 0.7f, windowHeight * 0.4f},
+            {windowWidth * 0.4f, windowHeight * 0.7f},
+            {windowWidth * 0.6f, windowHeight * 0.7f}
         };
+        biome = BiomeType::DESERT;
+    }
+    else if (screen == 4) { // Джунгли
+        positions = {
+            {windowWidth * 0.35f, windowHeight * 0.35f},
+            {windowWidth * 0.65f, windowHeight * 0.35f},
+            {windowWidth * 0.35f, windowHeight * 0.65f},
+            {windowWidth * 0.65f, windowHeight * 0.65f}
+        };
+        biome = BiomeType::JUNGLE;
+    }
+    else if (screen == 5) { // Арктика
+        positions = {
+            {windowWidth * 0.3f, windowHeight * 0.3f},
+            {windowWidth * 0.8f, windowHeight * 0.3f},
+            {windowWidth * 0.2f, windowHeight * 0.7f},
+            {windowWidth * 0.6f, windowHeight * 0.6f}
+        };
+        biome = BiomeType::ARCTICA;
+    }
 
-    initLootForBiome(3, BiomeType::DESERT, desertPositions);
-    initLootForBiome(4, BiomeType::JUNGLE, junglePositions);
-    initLootForBiome(5, BiomeType::ARCTICA, arcticaPositions);
+    for (int i = 0; i < 4; ++i) {
+        LootType type = currentExcavation ? currentExcavation->generateLoot() : LootType::NOTHING;
+        digSites[screen].emplace_back(
+            buriedTextures[static_cast<int>(biome)],
+            dugOutTextures[static_cast<int>(type)],
+            brokenLootTexture,
+            positions[i],
+            type,
+            biome
+        );
+    }
 }
 
 void Game::handleDigging() {
@@ -460,9 +462,10 @@ void Game::update() {
         float height = playerSprite.getGlobalBounds().height;
 
         playerSprite.setPosition(
-            std::max(0.f, std::min(pos.x, 1024.f - width)),
-            std::max(0.f, std::min(pos.y, 577.f - height))
+            std::max(0.f, std::min(pos.x, 1920.f - width)),  // Обновлено
+            std::max(0.f, std::min(pos.y, 1080.f - height))  // Обновлено
         );
+
     }
 
     // Телепортация
@@ -512,8 +515,7 @@ void Game::render() {
 
     // Отрисовка экрана смерти (если игрок умер)
     if (isPlayerDead) {
-        // Затемнение экрана
-        sf::RectangleShape overlay(sf::Vector2f(1024, 577));
+        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));  // Обновлено
         overlay.setFillColor(sf::Color(0, 0, 0, 150));
         window->draw(overlay);
 
@@ -524,7 +526,7 @@ void Game::render() {
             std::to_string(static_cast<int>(deathDelay - deathTimer.getElapsedTime().asSeconds())) + "...");
         deathText.setCharacterSize(50);
         deathText.setFillColor(sf::Color::Red);
-        deathText.setPosition(300, 250);
+        deathText.setPosition(800, 500);  // Обновлено положение для 1920x1080
         window->draw(deathText);
     }
 
@@ -573,17 +575,17 @@ void Game::renderUI() {
     toolInfoText.draw(*window);
 
     // Отображение состояния инструментов в правом верхнем углу
-    const float rightMargin = 20.f;
-    const float topMargin = 20.f;
-    const float toolSpacing = 30.f;
-
+    // Отображение состояния инструментов в правом верхнем углу
+    const float rightMargin = 50.f;  // Увеличено расстояние от края
+    const float topMargin = 50.f;    // Увеличено расстояние сверху
+    const float toolSpacing = 50.f;  // Увеличено расстояние между элементами
 
     // Кисточка (E)
     UIText brushText(
-        "E: Brash " + std::to_string(tools.brushDurability) + "/5",
-        25,
+        "E: Brush " + std::to_string(tools.brushDurability) + "/5",
+        36,
         tools.brushDurability > 0 ? sf::Color::White : sf::Color::Red,
-        window->getSize().x - rightMargin - 230.f,
+        window->getSize().x - rightMargin - 300.f,
         topMargin
     );
     brushText.draw(*window);
@@ -591,9 +593,9 @@ void Game::renderUI() {
     // Лопата (R)
     UIText shovelText(
         "R: Shovel " + std::to_string(tools.shovelDurability) + "/10",
-        25,
+        36,
         tools.shovelDurability > 0 ? sf::Color::White : sf::Color::Red,
-        window->getSize().x - rightMargin - 230.f,
+        window->getSize().x - rightMargin - 300.f,
         topMargin + toolSpacing
     );
     shovelText.draw(*window);
@@ -601,15 +603,14 @@ void Game::renderUI() {
     // Кирка (T)
     UIText pickaxeText(
         "T: Pickaxe " + std::to_string(tools.pickaxeDurability) + "/10",
-        25,
+        36,
         tools.pickaxeDurability > 0 ? sf::Color::White : sf::Color::Red,
-        window->getSize().x - rightMargin - 230.f,
+        window->getSize().x - rightMargin - 300.f,
         topMargin + toolSpacing * 2
     );
     pickaxeText.draw(*window);
 
 }
-
 
 void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
     // При возврате на базу (экран 0) восстанавливаем инструменты
@@ -657,58 +658,53 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
     playerSprite.setPosition(newPosition);
 }
 
-void Game::resetDigSites(int screen) {
-    if (screen < 3 || screen > 5) return;
+void Game::initDigSites() {
+    digSites.resize(6);
+    const float windowWidth = 1920.f;
+    const float windowHeight = 1080.f;
 
-    digSites[screen].clear();
-    const float windowWidth = 1024.f;
-    const float windowHeight = 577.f;
-    vector<sf::Vector2f> positions;
-    BiomeType biome;
+    // Пустыня - лут ближе друг к другу (новые позиции)
+    vector<sf::Vector2f> desertPositions = {
+        {windowWidth * 0.4f, windowHeight * 0.3f},  // Ближе к центру по горизонтали
+        {windowWidth * 0.6f, windowHeight * 0.3f},
+        {windowWidth * 0.4f, windowHeight * 0.7f},
+        {windowWidth * 0.6f, windowHeight * 0.7f}
+    };
 
-    if (screen == 3) { // Пустыня
-        positions = {
-            {windowWidth * 0.5f, windowHeight * 0.3f},
-            {windowWidth * 0.3f, windowHeight * 0.5f},
-            {windowWidth * 0.7f, windowHeight * 0.5f},
-            {windowWidth * 0.5f, windowHeight * 0.7f}
+    // Джунгли - оставляем как было
+    vector<sf::Vector2f> junglePositions = {
+        {windowWidth * 0.35f, windowHeight * 0.35f},
+        {windowWidth * 0.65f, windowHeight * 0.35f},
+        {windowWidth * 0.35f, windowHeight * 0.65f},
+        {windowWidth * 0.65f, windowHeight * 0.65f}
+    };
+
+    // Арктика - немного дальше друг от друга
+    vector<sf::Vector2f> arcticaPositions = {
+        {windowWidth * 0.3f, windowHeight * 0.3f},
+        {windowWidth * 0.7f, windowHeight * 0.3f},
+        {windowWidth * 0.3f, windowHeight * 0.7f},
+        {windowWidth * 0.7f, windowHeight * 0.7f}
+    };
+
+    // Остальной код без изменений
+    auto initLootForBiome = [&](int screen, BiomeType biome, const vector<sf::Vector2f>& positions) {
+        for (int i = 0; i < 4; ++i) {
+            LootType type = static_cast<LootType>(rand() % 5);
+            digSites[screen].emplace_back(
+                buriedTextures[static_cast<int>(biome)],
+                dugOutTextures[static_cast<int>(type)],
+                brokenLootTexture,
+                positions[i],
+                type,
+                biome
+            );
+        }
         };
-        biome = BiomeType::DESERT;
-    }
-    else if (screen == 4) { // Джунгли
-        positions = {
-            {windowWidth * 0.3f, windowHeight * 0.3f},
-            {windowWidth * 0.7f, windowHeight * 0.3f},
-            {windowWidth * 0.3f, windowHeight * 0.7f},
-            {windowWidth * 0.7f, windowHeight * 0.7f}
-        };
-        biome = BiomeType::JUNGLE;
-    }
-    else if (screen == 5) { // Арктика
-        positions = {
-            {windowWidth * 0.2f, windowHeight * 0.3f},
-            {windowWidth * 0.8f, windowHeight * 0.3f},
-            {windowWidth * 0.2f, windowHeight * 0.7f},
-            {windowWidth * 0.8f, windowHeight * 0.7f}
-        };
-        biome = BiomeType::ARCTICA;
-    }
 
-    // Генерация нового лута с учетом текущей экспедиции
-    for (int i = 0; i < 4; ++i) {
-        LootType type = currentExcavation ?
-            currentExcavation->generateLoot() :
-            LootType::NOTHING;
-
-        digSites[screen].emplace_back(
-            buriedTextures[static_cast<int>(biome)],
-            dugOutTextures[static_cast<int>(type)],
-            brokenLootTexture,  // Добавляем сломанную текстуру
-            positions[i],
-            type,
-            biome
-        );
-    }
+    initLootForBiome(3, BiomeType::DESERT, desertPositions);
+    initLootForBiome(4, BiomeType::JUNGLE, junglePositions);
+    initLootForBiome(5, BiomeType::ARCTICA, arcticaPositions);
 }
 
 int Game::countDugLoots() {

@@ -105,6 +105,13 @@ private:
     // Шрифты
     sf::Font debugFont;
 
+    // Текстуры и спрайты для магазина
+    sf::Texture buyBrushTex, buyShovelTex, buyPickaxeTex, buyEatTex;
+    sf::Sprite buyBrushSpr, buyShovelSpr, buyPickaxeSpr, buyEatSpr;
+
+    // Метод для обработки магазина
+    void handleShopItems();
+    void initShopItems();
     // Приватные методы
     void initVariables();
     void initWindow();

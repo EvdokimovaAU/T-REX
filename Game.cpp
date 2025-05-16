@@ -17,6 +17,7 @@ Game::Game() :
     excavatedText("", 36, sf::Color::White, 20.f, 230.f),            // Увеличено
     moneyWarningText("Not enough money!", 42, sf::Color::Red, 0.f, 0.f)  // Увеличено
 {
+    initShopItems();
     initVariables();
     initWindow();
     initPlayer();
@@ -116,6 +117,72 @@ void Game::initBackgrounds() {
             1080.f / backgroundTextures[i].getSize().y   // Обновлено
         );
     }
+}
+
+void Game::initShopItems() {
+    // Загрузка текстур
+    if (!buyBrushTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/buybrash.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color::Red);
+        buyBrushTex.loadFromImage(img);
+    }
+    if (!buyShovelTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/buyshovel.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color::Blue);
+        buyShovelTex.loadFromImage(img);
+    }
+    if (!buyPickaxeTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/buypickaxe.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color::Yellow);
+        buyPickaxeTex.loadFromImage(img);
+    }
+    if (!buyEatTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/buyeat.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color::Green);
+        buyEatTex.loadFromImage(img);
+    }
+
+    // Размеры и позиционирование
+    const float itemSize = 200.0f; // Увеличили размер иконок
+    const float spacing = 50.0f;  // Увеличили расстояние
+
+    // Центрирование
+    const float totalWidth = 2 * itemSize + spacing;
+    const float totalHeight = 2 * itemSize + spacing;
+    const float startX = (1920 - totalWidth) / 2 - 23;  // Центр по горизонтали
+    const float startY = (1080 - totalHeight) / 2 + 90; // Центр по вертикали
+
+    // Кисточка (верх-лево)
+    buyBrushSpr.setTexture(buyBrushTex);
+    buyBrushSpr.setScale(
+        itemSize / buyBrushTex.getSize().x,
+        itemSize / buyBrushTex.getSize().y
+    );
+    buyBrushSpr.setPosition(startX, startY);
+
+    // Лопата (верх-право)
+    buyShovelSpr.setTexture(buyShovelTex);
+    buyShovelSpr.setScale(
+        itemSize / buyShovelTex.getSize().x,
+        itemSize / buyShovelTex.getSize().y
+    );
+    buyShovelSpr.setPosition(startX + itemSize + spacing, startY);
+
+    // Кирка (низ-лево)
+    buyPickaxeSpr.setTexture(buyPickaxeTex);
+    buyPickaxeSpr.setScale(
+        itemSize / buyPickaxeTex.getSize().x,
+        itemSize / buyPickaxeTex.getSize().y
+    );
+    buyPickaxeSpr.setPosition(startX, startY + itemSize + spacing);
+
+    // Еда (низ-право)
+    buyEatSpr.setTexture(buyEatTex);
+    buyEatSpr.setScale(
+        itemSize / buyEatTex.getSize().x,
+        itemSize / buyEatTex.getSize().y
+    );
+    buyEatSpr.setPosition(startX + itemSize + spacing, startY + itemSize + spacing);
 }
 
 void Game::initScreens() {
@@ -408,16 +475,15 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
-    // Получаем время между кадрами
     float deltaTime = clock.restart().asSeconds();
-    if (deltaTime > 0.1f) deltaTime = 0.1f; // Ограничиваем максимальное значение
+    if (deltaTime > 0.1f) deltaTime = 0.1f;
 
-    // Если игрок умер, обрабатываем смерть
+    // Если игрок умер
     if (isPlayerDead) {
         if (deathTimer.getElapsedTime().asSeconds() >= deathDelay) {
             resetGame();
         }
-        return; // Не обновляем игру, пока не перезапустим
+        return;
     }
 
     // Обновление анимаций инструментов
@@ -430,21 +496,24 @@ void Game::update() {
         for (auto& loot : digSites[currentScreen]) {
             loot.update(deltaTime);
 
-            // Исправленная проверка - теперь учитывается, что лут был выкопан И это не NOTHING
             if (loot.getIsDug() && !loot.getWasCounted()) {
                 if (loot.getType() != LootType::NOTHING) {
                     updateFossils(1);
                 }
-                loot.setWasCounted(true); // Помечаем как учтенный в любом случае
+                loot.setWasCounted(true);
             }
         }
     }
 
     // Обработка ввода
     pollEvents();
-    handleDigging();
 
-    // Движение игрока (только если жив)
+    // Обработка магазина (добавлено)
+    if (currentScreen == 1) {
+        handleShopItems();
+    }
+
+    // Движение игрока
     if (!isPlayerDead) {
         float speed = moveSpeed * deltaTime * 60.f;
         sf::Vector2f movement(0.f, 0.f);
@@ -462,10 +531,9 @@ void Game::update() {
         float height = playerSprite.getGlobalBounds().height;
 
         playerSprite.setPosition(
-            std::max(0.f, std::min(pos.x, 1920.f - width)),  // Обновлено
-            std::max(0.f, std::min(pos.y, 1080.f - height))  // Обновлено
+            std::max(0.f, std::min(pos.x, 1920.f - width)),
+            std::max(0.f, std::min(pos.y, 1080.f - height))
         );
-
     }
 
     // Телепортация
@@ -493,6 +561,14 @@ void Game::render() {
     // Отрисовка фона
     window->draw(backgroundSprites[currentScreen]);
 
+    // Отрисовка предметов магазина (добавлено)
+    if (currentScreen == 1) {
+        window->draw(buyBrushSpr);
+        window->draw(buyShovelSpr);
+        window->draw(buyPickaxeSpr);
+        window->draw(buyEatSpr);
+    }
+
     // Отрисовка лута (только на экранах раскопок)
     if (currentScreen >= 3 && currentScreen <= 5) {
         for (const auto& loot : digSites[currentScreen]) {
@@ -513,20 +589,19 @@ void Game::render() {
     // Отрисовка UI
     renderUI();
 
-    // Отрисовка экрана смерти (если игрок умер)
+    // Отрисовка экрана смерти
     if (isPlayerDead) {
-        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));  // Обновлено
+        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
         overlay.setFillColor(sf::Color(0, 0, 0, 150));
         window->draw(overlay);
 
-        // Текст смерти
         sf::Text deathText;
         deathText.setFont(debugFont);
         deathText.setString("You died from starvation!\nRestarting in " +
             std::to_string(static_cast<int>(deathDelay - deathTimer.getElapsedTime().asSeconds())) + "...");
         deathText.setCharacterSize(50);
         deathText.setFillColor(sf::Color::Red);
-        deathText.setPosition(800, 500);  // Обновлено положение для 1920x1080
+        deathText.setPosition(800, 500);
         window->draw(deathText);
     }
 
@@ -778,4 +853,34 @@ void Game::resetGame() {
     moneyText.setContent("Money: $1000");
     fossilsText.setContent("Fossils: 0");
     suppliesText.setContent("Supplies: 0");
+}
+
+void Game::handleShopItems() {
+    if (currentScreen != 1) return; // Только в магазине
+
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+        sf::Vector2f mousePos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+
+        if (buyBrushSpr.getGlobalBounds().contains(mousePos) && money >= 200) {
+            money -= 200;
+            tools.brushDurability = 5;
+            moneyText.setContent("Money: $" + std::to_string(money));
+        }
+        else if (buyShovelSpr.getGlobalBounds().contains(mousePos) && money >= 300) {
+            money -= 300;
+            tools.shovelDurability = 10;
+            moneyText.setContent("Money: $" + std::to_string(money));
+        }
+        else if (buyPickaxeSpr.getGlobalBounds().contains(mousePos) && money >= 350) {
+            money -= 350;
+            tools.pickaxeDurability = 10;
+            moneyText.setContent("Money: $" + std::to_string(money));
+        }
+        else if (buyEatSpr.getGlobalBounds().contains(mousePos) && money >= 50) {
+            money -= 50;
+            hunger = std::min(10, hunger + 2);
+            hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
+            moneyText.setContent("Money: $" + std::to_string(money));
+        }
+    }
 }

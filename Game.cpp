@@ -16,7 +16,9 @@ Game::Game() :
     suppliesText("Supplies: 0", 36, sf::Color::White, 20.f, 180.f),  // Увеличено
     excavatedText("", 36, sf::Color::White, 20.f, 230.f),            // Увеличено
     moneyWarningText("Not enough money!", 42, sf::Color::Red, 0.f, 0.f),  // Увеличено
-    wasMouseClicked(false)
+    wasMouseClicked(false),
+    inShopScreen(false), // Добавляем инициализацию флага
+    digCooldown(0.3f)
 {
     initShopItems();
     initVariables();
@@ -324,112 +326,104 @@ void Game::resetDigSites(int screen) {
 }
 
 void Game::handleDigging() {
-    static sf::Clock digClock;
-    const float digCooldown = 0.3f;
-
     // Проверка базовых условий
+    if (currentScreen < 3 || currentScreen > 5) return;
+    if (hunger <= 0) return;
     if (digClock.getElapsedTime().asSeconds() < digCooldown) return;
-    if (currentScreen < 3 || currentScreen > 5) return; // Только на экранах раскопок
-    if (hunger <= 0) return; // Нельзя копать без сил
 
-    // Функция проверки состояния инструмента
-    auto canUseTool = [this](int durability, const std::string& toolName) {
-        if (durability <= 0) {
-            std::cout << toolName << " сломана! Вернитесь на базу для ремонта." << std::endl;
-            return false;
-        }
-        return true;
-        };
+    // Проверяем события нажатия клавиш
+    bool ePressed = sf::Keyboard::isKeyPressed(sf::Keyboard::E);
+    bool rPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::R);
+    bool tPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::T);
+
+    // Если нет нажатий - выходим
+    if (!ePressed && !rPressed && !tPressed) return;
 
     // Поиск ближайшего доступного лута
+    Loot* targetLoot = nullptr;
+    float minDistance = 200.f;
     sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
-    Loot* closestLoot = nullptr;
-    float minDistance = std::numeric_limits<float>::max();
-    const float maxDigDistance = 100.0f;
 
     for (auto& loot : digSites[currentScreen]) {
-        if (!loot.getIsDug() && !loot.getIsDigging() && !loot.getIsBroken() &&
-            playerBounds.intersects(loot.getGlobalBounds())) {
+        if (loot.getIsDug() || loot.getIsBroken()) continue;
 
-            sf::Vector2f playerCenter = {
-                playerBounds.left + playerBounds.width / 2,
-                playerBounds.top + playerBounds.height / 2
-            };
-            float distance = std::sqrt(
-                std::pow(playerCenter.x - loot.getPosition().x, 2) +
-                std::pow(playerCenter.y - loot.getPosition().y, 2)
-            );
+        sf::FloatRect lootBounds = loot.getGlobalBounds();
+        if (!playerBounds.intersects(lootBounds)) continue;
 
-            if (distance < minDistance && distance <= maxDigDistance) {
-                minDistance = distance;
-                closestLoot = &loot;
-            }
+        sf::Vector2f playerCenter = {
+            playerBounds.left + playerBounds.width / 2,
+            playerBounds.top + playerBounds.height / 2
+        };
+        sf::Vector2f lootCenter = {
+            lootBounds.left + lootBounds.width / 2,
+            lootBounds.top + lootBounds.height / 2
+        };
+
+        float distance = std::sqrt(
+            std::pow(playerCenter.x - lootCenter.x, 2) +
+            std::pow(playerCenter.y - lootCenter.y, 2)
+        );
+
+        if (distance < minDistance) {
+            minDistance = distance;
+            targetLoot = &loot;
         }
     }
 
-    // Если нашли лут для копания
-    if (closestLoot != nullptr) {
-        sf::Vector2f animPosition = closestLoot->getPosition();
-        animPosition.x -= 45.f;
-        animPosition.y -= 25.f;
+    if (!targetLoot) return;
 
-        // Обработка кисточки (E)
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E) && canUseTool(tools.brushDurability, "Кисточка")) {
-            brushAnimation.setPosition(animPosition);
-            brushAnimation.play();
+    // Обработка инструментов
+    bool digAttemptMade = false;
+    sf::Vector2f animPos = targetLoot->getPosition();
+    animPos.x -= 45.f;
+    animPos.y -= 25.f;
 
-            bool success = (rand() % 100 > 30); // 70% успеха
-            if (success) {
-                closestLoot->startDigging();
-                tools.brushDurability -= 1; // -1 при успехе
-            }
-            else {
-                closestLoot->breakLoot();
-                tools.brushDurability -= 5; // -5 при неудаче
-            }
-            updateHunger(-1);
-            digClock.restart();
+    if (ePressed && tools.brushDurability > 0) {
+        brushAnimation.setPosition(animPos);
+        brushAnimation.play();
+
+        if (rand() % 100 < 70) { // 70% успех
+            targetLoot->startDigging();
         }
-        // Обработка лопаты (R)
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R) && canUseTool(tools.shovelDurability, "Лопата")) {
-            shovelAnimation.setPosition(animPosition);
-            shovelAnimation.play();
-
-            bool success = (rand() % 100 > 20); // 80% успеха
-            if (success) {
-                closestLoot->startDigging();
-                tools.shovelDurability -= 1;
-            }
-            else {
-                closestLoot->breakLoot();
-                tools.shovelDurability -= 5;
-            }
-            updateHunger(-1);
-            digClock.restart();
+        else {
+            targetLoot->breakLoot();
         }
-        // Обработка кирки (T)
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::T) && canUseTool(tools.pickaxeDurability, "Кирка")) {
-            pickaxeAnimation.setPosition(animPosition);
-            pickaxeAnimation.play();
+        tools.brushDurability--;
+        updateHunger(-1);
+        digAttemptMade = true;
+    }
+    else if (rPressed && tools.shovelDurability > 0) {
+        shovelAnimation.setPosition(animPos);
+        shovelAnimation.play();
 
-            bool success = (rand() % 100 > 40); // 60% успеха
-            if (success) {
-                closestLoot->startDigging();
-                tools.pickaxeDurability -= 1;
-            }
-            else {
-                closestLoot->breakLoot();
-                tools.pickaxeDurability -= 5;
-            }
-            updateHunger(-2);
-            digClock.restart();
+        if (rand() % 100 < 50) { // 50% успех
+            targetLoot->startDigging();
         }
+        else {
+            targetLoot->breakLoot();
+        }
+        tools.shovelDurability--;
+        updateHunger(-1);
+        digAttemptMade = true;
+    }
+    else if (tPressed && tools.pickaxeDurability > 0) {
+        pickaxeAnimation.setPosition(animPos);
+        pickaxeAnimation.play();
+
+        if (rand() % 100 < 30) { // 30% успех
+            targetLoot->startDigging();
+        }
+        else {
+            targetLoot->breakLoot();
+        }
+        tools.pickaxeDurability--;
+        updateHunger(-1);
+        digAttemptMade = true;
     }
 
-    // Проверка сломанных инструментов
-    if (tools.brushDurability < 0) tools.brushDurability = 0;
-    if (tools.shovelDurability < 0) tools.shovelDurability = 0;
-    if (tools.pickaxeDurability < 0) tools.pickaxeDurability = 0;
+    if (digAttemptMade) {
+        digClock.restart();
+    }
 }
 
 void Game::updateHunger(int change) {
@@ -462,6 +456,40 @@ void Game::updateSupplies(int change) {
 }
 
 void Game::pollEvents() {
+
+    while (window->pollEvent(event)) {
+        if (event.type == sf::Event::Closed) window->close();
+
+        // Обработка клавиш раскопок даже в магазине (если нужно)
+        if (event.type == sf::Event::KeyPressed) {
+            if (event.key.code == sf::Keyboard::E) handleDigging();
+            if (event.key.code == sf::Keyboard::R) handleDigging();
+            if (event.key.code == sf::Keyboard::T) handleDigging();
+        }
+    }
+    // Если мы в магазине, обрабатываем все события
+    if (inShopScreen) {
+        while (window->pollEvent(event)) {
+            switch (event.type) {
+            case sf::Event::Closed:
+                window->close();
+                break;
+            case sf::Event::KeyPressed:
+                if (event.key.code == sf::Keyboard::Escape)
+                    window->close();
+                break;
+            case sf::Event::MouseButtonPressed:
+                wasMouseClicked = true;
+                break;
+            case sf::Event::MouseButtonReleased:
+                wasMouseClicked = false;
+                break;
+            }
+        }
+        return;
+    }
+
+    // Для других экранов обрабатываем только закрытие
     while (window->pollEvent(event)) {
         switch (event.type) {
         case sf::Event::Closed:
@@ -476,8 +504,22 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
+
     float deltaTime = clock.restart().asSeconds();
     if (deltaTime > 0.1f) deltaTime = 0.1f;
+
+    // Обновляем анимации инструментов
+    brushAnimation.update(deltaTime);
+    shovelAnimation.update(deltaTime);
+    pickaxeAnimation.update(deltaTime);
+
+
+    // Обработка магазина только если мы в нем
+    if (inShopScreen) {
+        handleShopItems();
+        pollEvents(); // Обрабатываем события только для магазина
+        return; // Выходим, чтобы не обрабатывать движение и раскопки
+    }
 
     // Если игрок умер
     if (isPlayerDead) {
@@ -486,11 +528,6 @@ void Game::update() {
         }
         return;
     }
-
-    // Обновление анимаций инструментов
-    brushAnimation.update(deltaTime);
-    shovelAnimation.update(deltaTime);
-    pickaxeAnimation.update(deltaTime);
 
     // Обновление состояния раскопок
     if (currentScreen >= 3 && currentScreen <= 5) {
@@ -689,6 +726,9 @@ void Game::renderUI() {
 }
 
 void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
+
+    inShopScreen = (newScreen == 1);
+
     // При возврате на базу (экран 0) восстанавливаем инструменты
     if (newScreen == 0) {
         tools.brushDurability = 5;
@@ -858,6 +898,7 @@ void Game::resetGame() {
 
 void Game::handleShopItems() {
     if (currentScreen != 1) return;
+    if (!inShopScreen) return; // Дополнительная проверка
 
     // Проверяем состояние кнопки мыши
     bool isMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);

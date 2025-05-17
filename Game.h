@@ -97,6 +97,8 @@ private:
     bool canUsePortal;
     bool showMoneyWarning;
 
+    sf::Clock digClock;
+    const float digCooldown = 0.3f;
     // Таймеры
     sf::Clock clock;
     sf::Clock portalClock;
@@ -108,7 +110,10 @@ private:
     // Текстуры и спрайты для магазина
     sf::Texture buyBrushTex, buyShovelTex, buyPickaxeTex, buyEatTex;
     sf::Sprite buyBrushSpr, buyShovelSpr, buyPickaxeSpr, buyEatSpr;
+
     bool wasMouseClicked; // Флаг для отслеживания клика
+    bool inShopScreen; // Добавляем флаг для отслеживания магазина
+
     // Метод для обработки магазина
     void handleShopItems();
     void initShopItems();

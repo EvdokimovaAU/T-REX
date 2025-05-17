@@ -127,9 +127,17 @@ bool Loot::getWasCounted() const {
 void Loot::update(float deltaTime) {
     if (isDigging && !isBroken) {
         diggingTime += deltaTime;
+
+        // Плавное изменение цвета при копании
+        float progress = diggingTime / requiredDiggingTime;
+        int colorValue = 150 + static_cast<int>(105 * progress);
+        colorValue = std::min(255, colorValue);
+        diggingSprite.setColor(sf::Color(colorValue, colorValue, colorValue));
+
         if (diggingTime >= requiredDiggingTime) {
             isDigging = false;
             isDug = true;
+            
         }
     }
 }
@@ -137,6 +145,10 @@ void Loot::update(float deltaTime) {
 void Loot::startDigging() {
     if (!isDug && !isDigging && !isBroken) {
         isDigging = true;
+        isDug = false;
+        isBroken = false;
         diggingTime = 0.f;
+        // Обновляем текстуру для состояния копания
+        diggingSprite.setColor(sf::Color(150, 150, 150));
     }
 }

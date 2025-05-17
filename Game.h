@@ -27,7 +27,7 @@ struct ScreenHistory
 class Game
 {
 private:
-
+    
     struct {
         int brushDurability = 5;
         int shovelDurability = 10;
@@ -108,7 +108,7 @@ private:
     // Текстуры и спрайты для магазина
     sf::Texture buyBrushTex, buyShovelTex, buyPickaxeTex, buyEatTex;
     sf::Sprite buyBrushSpr, buyShovelSpr, buyPickaxeSpr, buyEatSpr;
-
+    bool wasMouseClicked; // Флаг для отслеживания клика
     // Метод для обработки магазина
     void handleShopItems();
     void initShopItems();

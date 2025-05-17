@@ -15,7 +15,8 @@ Game::Game() :
     fossilsText("Fossils: 0", 36, sf::Color::White, 20.f, 130.f),    // Увеличено
     suppliesText("Supplies: 0", 36, sf::Color::White, 20.f, 180.f),  // Увеличено
     excavatedText("", 36, sf::Color::White, 20.f, 230.f),            // Увеличено
-    moneyWarningText("Not enough money!", 42, sf::Color::Red, 0.f, 0.f)  // Увеличено
+    moneyWarningText("Not enough money!", 42, sf::Color::Red, 0.f, 0.f),  // Увеличено
+    wasMouseClicked(false)
 {
     initShopItems();
     initVariables();
@@ -856,9 +857,13 @@ void Game::resetGame() {
 }
 
 void Game::handleShopItems() {
-    if (currentScreen != 1) return; // Только в магазине
+    if (currentScreen != 1) return;
 
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+    // Проверяем состояние кнопки мыши
+    bool isMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
+
+    // Если кнопка только что была нажата (не была нажата в предыдущем кадре)
+    if (isMousePressed && !wasMouseClicked) {
         sf::Vector2f mousePos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
 
         if (buyBrushSpr.getGlobalBounds().contains(mousePos) && money >= 200) {
@@ -883,4 +888,7 @@ void Game::handleShopItems() {
             moneyText.setContent("Money: $" + std::to_string(money));
         }
     }
+
+    // Обновляем состояние флага для следующего кадра
+    wasMouseClicked = isMousePressed;
 }

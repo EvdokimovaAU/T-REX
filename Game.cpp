@@ -327,29 +327,29 @@ void Game::resetDigSites(int screen) {
 
 void Game::handleDigging() {
     // Проверка базовых условий
-    if (currentScreen < 3 || currentScreen > 5) return;
-    if (hunger <= 0) return;
-    if (digClock.getElapsedTime().asSeconds() < digCooldown) return;
+    if (currentScreen < 3 || currentScreen > 5) return; // Только на экранах раскопок
+    if (hunger <= 0) return; // Нельзя копать без сил
+    if (digClock.getElapsedTime().asSeconds() < digCooldown) return; // Кулдаун
 
-    // Проверяем события нажатия клавиш
-    bool ePressed = sf::Keyboard::isKeyPressed(sf::Keyboard::E);
-    bool rPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::R);
-    bool tPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::T);
+    // Проверяем нажатия клавиш инструментов
+    bool ePressed = sf::Keyboard::isKeyPressed(sf::Keyboard::E); // Кисточка
+    bool rPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::R); // Лопата
+    bool tPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::T); // Кирка
 
-    // Если нет нажатий - выходим
-    if (!ePressed && !rPressed && !tPressed) return;
+    if (!ePressed && !rPressed && !tPressed) return; // Ничего не нажато
 
-    // Поиск ближайшего доступного лута
+    // Ищем ближайший доступный лут
     Loot* targetLoot = nullptr;
     float minDistance = 200.f;
     sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
 
     for (auto& loot : digSites[currentScreen]) {
-        if (loot.getIsDug() || loot.getIsBroken()) continue;
+        if (loot.getIsDug() || loot.getIsBroken()) continue; // Пропускаем раскопанное/сломанное
 
         sf::FloatRect lootBounds = loot.getGlobalBounds();
-        if (!playerBounds.intersects(lootBounds)) continue;
+        if (!playerBounds.intersects(lootBounds)) continue; // Не пересекается с игроком
 
+        // Вычисляем расстояние между центрами
         sf::Vector2f playerCenter = {
             playerBounds.left + playerBounds.width / 2,
             playerBounds.top + playerBounds.height / 2
@@ -370,51 +370,57 @@ void Game::handleDigging() {
         }
     }
 
-    if (!targetLoot) return;
+    if (!targetLoot) return; // Нет подходящего лута
 
-    // Обработка инструментов
-    bool digAttemptMade = false;
+    // Позиция для анимации инструмента
     sf::Vector2f animPos = targetLoot->getPosition();
     animPos.x -= 45.f;
     animPos.y -= 25.f;
 
+    // Обработка инструментов
+    bool digAttemptMade = false;
+    const int BRUSH_CHANCE = 70;    // 70% успеха
+    const int SHOVEL_CHANCE = 50;   // 50% успеха
+    const int PICKAXE_CHANCE = 30;  // 30% успеха
+
     if (ePressed && tools.brushDurability > 0) {
+        // Кисточка - не ломает лут при неудаче
         brushAnimation.setPosition(animPos);
         brushAnimation.play();
 
-        if (rand() % 100 < 70) { // 70% успех
-            targetLoot->startDigging();
+        if (rand() % 100 < BRUSH_CHANCE) {
+            targetLoot->startDigging(); // Успешная раскопка
         }
-        else {
-            targetLoot->breakLoot();
-        }
+        // При неудаче просто ничего не происходит
         tools.brushDurability--;
         updateHunger(-1);
         digAttemptMade = true;
     }
     else if (rPressed && tools.shovelDurability > 0) {
+        // Лопата - может сломать лут
         shovelAnimation.setPosition(animPos);
         shovelAnimation.play();
 
-        if (rand() % 100 < 50) { // 50% успех
+        if (rand() % 100 < SHOVEL_CHANCE) {
             targetLoot->startDigging();
         }
         else {
-            targetLoot->breakLoot();
+            targetLoot->breakLoot(); // Ломаем лут при неудаче
         }
         tools.shovelDurability--;
         updateHunger(-1);
         digAttemptMade = true;
     }
     else if (tPressed && tools.pickaxeDurability > 0) {
+        // Кирка - чаще ломает лут
         pickaxeAnimation.setPosition(animPos);
         pickaxeAnimation.play();
 
-        if (rand() % 100 < 30) { // 30% успех
+        if (rand() % 100 < PICKAXE_CHANCE) {
             targetLoot->startDigging();
         }
         else {
-            targetLoot->breakLoot();
+            targetLoot->breakLoot(); // Ломаем лут при неудаче
         }
         tools.pickaxeDurability--;
         updateHunger(-1);
@@ -422,7 +428,7 @@ void Game::handleDigging() {
     }
 
     if (digAttemptMade) {
-        digClock.restart();
+        digClock.restart(); // Сбрасываем кулдаун
     }
 }
 

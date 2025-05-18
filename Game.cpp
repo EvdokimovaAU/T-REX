@@ -698,6 +698,8 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
 
     inShopScreen = (newScreen == 1);
 
+    
+
     // Проверка стоимости перехода
     if (excavations.find(newScreen) != excavations.end()) {
         if (money < excavations[newScreen]->getCost()) {
@@ -859,40 +861,69 @@ void Game::resetGame() {
 }
 
 void Game::handleShopItems() {
-
+    // Проверяем, что мы находимся в магазине (экран с индексом 1)
     if (currentScreen != 1) return;
-    if (!inShopScreen) return; // Дополнительная проверка
 
-    // Проверяем состояние кнопки мыши
+    // Получаем текущую позицию мыши в координатах окна
+    sf::Vector2f mousePos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+
+    // Проверяем состояние левой кнопки мыши
     bool isMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
 
-    // Если кнопка только что была нажата (не была нажата в предыдущем кадре)
-    if (isMousePressed && !wasMouseClicked) {
-        sf::Vector2f mousePos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-
-        if (buyBrushSpr.getGlobalBounds().contains(mousePos) && money >= 200) {
-            money -= 200;
-            tools.brushDurability = 5;
-            moneyText.setContent("Money: $" + std::to_string(money));
+    // Обрабатываем только момент нажатия (не зажатие)
+    if (isMousePressed && !wasMousePressed) {
+        // Проверяем, какая кнопка была нажата
+        if (buyBrushSpr.getGlobalBounds().contains(mousePos)) {
+            // Покупка кисточки (200$)
+            if (money >= 200) {
+                money -= 200;
+                tools.brushDurability = 5;
+                moneyText.setContent("Money: $" + std::to_string(money));
+            }
+            else {
+                showMoneyWarning = true;
+                moneyWarningClock.restart();
+            }
         }
-        else if (buyShovelSpr.getGlobalBounds().contains(mousePos) && money >= 300) {
-            money -= 300;
-            tools.shovelDurability = 10;
-            moneyText.setContent("Money: $" + std::to_string(money));
+        else if (buyShovelSpr.getGlobalBounds().contains(mousePos)) {
+            // Покупка лопаты (300$)
+            if (money >= 300) {
+                money -= 300;
+                tools.shovelDurability = 10;
+                moneyText.setContent("Money: $" + std::to_string(money));
+            }
+            else {
+                showMoneyWarning = true;
+                moneyWarningClock.restart();
+            }
         }
-        else if (buyPickaxeSpr.getGlobalBounds().contains(mousePos) && money >= 350) {
-            money -= 350;
-            tools.pickaxeDurability = 10;
-            moneyText.setContent("Money: $" + std::to_string(money));
+        else if (buyPickaxeSpr.getGlobalBounds().contains(mousePos)) {
+            // Покупка кирки (350$)
+            if (money >= 350) {
+                money -= 350;
+                tools.pickaxeDurability = 10;
+                moneyText.setContent("Money: $" + std::to_string(money));
+            }
+            else {
+                showMoneyWarning = true;
+                moneyWarningClock.restart();
+            }
         }
-        else if (buyEatSpr.getGlobalBounds().contains(mousePos) && money >= 50) {
-            money -= 50;
-            hunger = std::min(10, hunger + 2);
-            hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
-            moneyText.setContent("Money: $" + std::to_string(money));
+        else if (buyEatSpr.getGlobalBounds().contains(mousePos)) {
+            // Покупка еды (50$)
+            if (money >= 50) {
+                money -= 50;
+                hunger = std::min(10, hunger + 2);
+                hungerText.setContent("Hunger: " + std::to_string(hunger) + "/10");
+                moneyText.setContent("Money: $" + std::to_string(money));
+            }
+            else {
+                showMoneyWarning = true;
+                moneyWarningClock.restart();
+            }
         }
     }
 
-    // Обновляем состояние флага для следующего кадра
-    wasMouseClicked = isMousePressed;
+    // Обновляем состояние кнопки мыши для следующего кадра
+    wasMousePressed = isMousePressed;
 }

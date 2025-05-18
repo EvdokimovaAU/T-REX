@@ -28,6 +28,8 @@ class Game
 {
 private:
     
+    bool wasMousePressed; // Добавьте это в private секцию
+
     struct {
         int brushDurability = 5;
         int shovelDurability = 10;
@@ -117,7 +119,6 @@ private:
     // Метод для обработки магазина
     void handleShopItems();
     void initShopItems();
-    // Приватные методы
     void initVariables();
     void initWindow();
     void initPlayer();

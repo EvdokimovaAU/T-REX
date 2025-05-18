@@ -43,7 +43,7 @@ private:
 
     void resetGame(); // Метод для сброса игры
     void checkPlayerDeath(); // Проверка состояния игрока
-
+    bool isShopScreen() const { return currentScreen == 1; }
     // Анимации инструментов
     DigAnimation brushAnimation;   // Кисть (E)
     DigAnimation shovelAnimation; // Лопата (R)

@@ -456,28 +456,20 @@ void Game::updateSupplies(int change) {
 }
 
 void Game::pollEvents() {
-
     while (window->pollEvent(event)) {
         if (event.type == sf::Event::Closed) window->close();
 
-        // Обработка клавиш раскопок даже в магазине (если нужно)
+        // Обработка клавиш раскопок
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::E) handleDigging();
             if (event.key.code == sf::Keyboard::R) handleDigging();
             if (event.key.code == sf::Keyboard::T) handleDigging();
+            if (event.key.code == sf::Keyboard::Escape) window->close();
         }
-    }
-    // Если мы в магазине, обрабатываем все события
-    if (inShopScreen) {
-        while (window->pollEvent(event)) {
+
+        // Обработка кликов мыши только в магазине
+        if (inShopScreen) {
             switch (event.type) {
-            case sf::Event::Closed:
-                window->close();
-                break;
-            case sf::Event::KeyPressed:
-                if (event.key.code == sf::Keyboard::Escape)
-                    window->close();
-                break;
             case sf::Event::MouseButtonPressed:
                 wasMouseClicked = true;
                 break;
@@ -486,25 +478,10 @@ void Game::pollEvents() {
                 break;
             }
         }
-        return;
-    }
-
-    // Для других экранов обрабатываем только закрытие
-    while (window->pollEvent(event)) {
-        switch (event.type) {
-        case sf::Event::Closed:
-            window->close();
-            break;
-        case sf::Event::KeyPressed:
-            if (event.key.code == sf::Keyboard::Escape)
-                window->close();
-            break;
-        }
     }
 }
 
 void Game::update() {
-
     float deltaTime = clock.restart().asSeconds();
     if (deltaTime > 0.1f) deltaTime = 0.1f;
 
@@ -513,15 +490,8 @@ void Game::update() {
     shovelAnimation.update(deltaTime);
     pickaxeAnimation.update(deltaTime);
 
+    pollEvents();
 
-    // Обработка магазина только если мы в нем
-    if (inShopScreen) {
-        handleShopItems();
-        pollEvents(); // Обрабатываем события только для магазина
-        return; // Выходим, чтобы не обрабатывать движение и раскопки
-    }
-
-    // Если игрок умер
     if (isPlayerDead) {
         if (deathTimer.getElapsedTime().asSeconds() >= deathDelay) {
             resetGame();
@@ -529,52 +499,48 @@ void Game::update() {
         return;
     }
 
-    // Обновление состояния раскопок
-    if (currentScreen >= 3 && currentScreen <= 5) {
-        for (auto& loot : digSites[currentScreen]) {
-            loot.update(deltaTime);
-
-            if (loot.getIsDug() && !loot.getWasCounted()) {
-                if (loot.getType() != LootType::NOTHING) {
-                    updateFossils(1);
+    // Обработка магазина
+    if (isShopScreen()) {
+        handleShopItems();
+    }
+    // Движение игрока работает везде
+    else {
+        // Обновление состояния раскопок только на экранах раскопок
+        if (currentScreen >= 3 && currentScreen <= 5) {
+            for (auto& loot : digSites[currentScreen]) {
+                loot.update(deltaTime);
+                if (loot.getIsDug() && !loot.getWasCounted()) {
+                    if (loot.getType() != LootType::NOTHING) {
+                        updateFossils(1);
+                    }
+                    loot.setWasCounted(true);
                 }
-                loot.setWasCounted(true);
             }
         }
     }
 
-    // Обработка ввода
-    pollEvents();
-
-    // Обработка магазина (добавлено)
-    if (currentScreen == 1) {
-        handleShopItems();
-    }
-
     // Движение игрока
-    if (!isPlayerDead) {
-        float speed = moveSpeed * deltaTime * 60.f;
-        sf::Vector2f movement(0.f, 0.f);
+    float speed = moveSpeed * deltaTime * 60.f;
+    sf::Vector2f movement(0.f, 0.f);
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) movement.x -= speed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) movement.x += speed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) movement.y -= speed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) movement.y += speed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) movement.x -= speed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) movement.x += speed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) movement.y -= speed;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) movement.y += speed;
 
-        playerSprite.move(movement);
+    playerSprite.move(movement);
 
-        // Ограничение позиции игрока
-        sf::Vector2f pos = playerSprite.getPosition();
-        float width = playerSprite.getGlobalBounds().width;
-        float height = playerSprite.getGlobalBounds().height;
+    // Ограничение позиции
+    sf::Vector2f pos = playerSprite.getPosition();
+    float width = playerSprite.getGlobalBounds().width;
+    float height = playerSprite.getGlobalBounds().height;
 
-        playerSprite.setPosition(
-            std::max(0.f, std::min(pos.x, 1920.f - width)),
-            std::max(0.f, std::min(pos.y, 1080.f - height))
-        );
-    }
+    playerSprite.setPosition(
+        std::max(0.f, std::min(pos.x, 1920.f - width)),
+        std::max(0.f, std::min(pos.y, 1080.f - height))
+    );
 
-    // Телепортация
+    // Телепортация (работает везде, включая магазин)
     if (canUsePortal && !isPlayerDead) {
         for (const auto& portal : screens[currentScreen]) {
             if (playerSprite.getGlobalBounds().intersects(portal.getZoneRect())) {
@@ -588,9 +554,6 @@ void Game::update() {
     else if (portalClock.getElapsedTime().asSeconds() > 0.5f) {
         canUsePortal = true;
     }
-
-    // Проверка смерти игрока
-    checkPlayerDeath();
 }
 
 void Game::render() {
@@ -897,6 +860,7 @@ void Game::resetGame() {
 }
 
 void Game::handleShopItems() {
+
     if (currentScreen != 1) return;
     if (!inShopScreen) return; // Дополнительная проверка
 

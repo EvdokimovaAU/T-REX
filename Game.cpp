@@ -52,7 +52,7 @@ void Game::initWindow() {
 }
 
 void Game::initPlayer() {
-    if (!playerTexture.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/dino.png")) {
+    if (!playerTexture.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/dino.png")) {
         sf::Image placeholder;
         placeholder.create(64, 64, sf::Color::Red);
         playerTexture.loadFromImage(placeholder);
@@ -100,12 +100,12 @@ void Game::initBackgrounds() {
     backgroundSprites.resize(6);
 
     vector<string> texturePaths = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/baza.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/shop.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/museum.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/desert.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/jungle.jpg",
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/locations/arctica.jpg"
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/baza.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/shop.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/museum.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/desert.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/jungle.jpg",
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/arctica.jpg"
     };
 
     for (int i = 0; i < 6; ++i) {
@@ -223,9 +223,9 @@ void Game::initScreens() {
 void Game::initLootTextures() {
     // Загрузка текстур для закопанных объектов
     string buriedPaths[3] = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootdes.png",  // DESERT
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootjun.png",  // JUNGLE
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/lootarc.png"   // ARCTICA
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures//lootdes.png",  // DESERT
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/lootjun.png",  // JUNGLE
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/lootarc.png"   // ARCTICA
     };
 
     for (int i = 0; i < 3; ++i) {
@@ -241,11 +241,11 @@ void Game::initLootTextures() {
 
     // Загрузка текстур для раскопанных объектов
     string dugOutPaths[5] = {
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/bones.png",    // BONES
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/plant.png",    // PLANT
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/tooth.png",    // TOOTH
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/unicorn.png",  // UNICORN
-        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/nothing.png"   // NOTHING
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/bones.png",    // BONES
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/plant.png",    // PLANT
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/tooth.png",    // TOOTH
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/unicorn.png",  // UNICORN
+        "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/nothing.png"   // NOTHING
     };
 
     for (int i = 0; i < 5; ++i) {
@@ -697,13 +697,6 @@ void Game::renderUI() {
 void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
 
     inShopScreen = (newScreen == 1);
-
-    // При возврате на базу (экран 0) восстанавливаем инструменты
-    if (newScreen == 0) {
-        tools.brushDurability = 5;
-        tools.shovelDurability = 10;
-        tools.pickaxeDurability = 10;
-    }
 
     // Проверка стоимости перехода
     if (excavations.find(newScreen) != excavations.end()) {

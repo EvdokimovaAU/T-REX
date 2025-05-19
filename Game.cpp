@@ -18,12 +18,14 @@ Game::Game() :
     moneyWarningText("Not enough money!", 42, sf::Color::Red, 0.f, 0.f),  // Увеличено
     wasMouseClicked(false),
     inShopScreen(false), // Добавляем инициализацию флага
-    digCooldown(0.3f)
+    digCooldown(0.3f),
+    bonesCount(0), toothCount(0), unicornCount(0), plantCount(0)
 {
     initShopItems();
     initVariables();
     initWindow();
     initPlayer();
+    initMuseumItems();
     initScreens();
     initBackgrounds();
     initLootTextures();
@@ -188,6 +190,72 @@ void Game::initShopItems() {
     buyEatSpr.setPosition(startX + itemSize + spacing, startY + itemSize + spacing);
 }
 
+void Game::initMuseumItems() {
+    // Загрузка текстур
+    if (!museumQuestionTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/question.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color::White);
+        museumQuestionTex.loadFromImage(img);
+    }
+    if (!museumBonesTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/bonessell.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color(139, 69, 19));
+        museumBonesTex.loadFromImage(img);
+    }
+    if (!museumToothTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/toothsell.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color(210, 180, 140));
+        museumToothTex.loadFromImage(img);
+    }
+    if (!museumUnicornTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/unicornsell.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color(255, 192, 203));
+        museumUnicornTex.loadFromImage(img);
+    }
+    if (!museumPlantTex.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/plantsell.jpg")) {
+        sf::Image img;
+        img.create(100, 100, sf::Color(0, 100, 0));
+        museumPlantTex.loadFromImage(img);
+    }
+
+    // Размеры и позиционирование - увеличиваем расстояние
+    const float itemSize = 200.0f;
+    const float horizontalSpacing = 250.0f; // Увеличили горизонтальное расстояние
+    const float verticalSpacing = 10.0f;    // Увеличили вертикальное расстояние
+    const float startX = (1920 - 2 * itemSize - horizontalSpacing) / 2 - 120; // Сдвигаем левее
+    const float startY = (1080 - 2 * itemSize - verticalSpacing) / 2 + 90;
+
+    // Bones (верх-лево)
+    museumBonesSpr.setTexture(museumBonesTex);
+    museumBonesSpr.setScale(itemSize / museumBonesTex.getSize().x,
+        itemSize / museumBonesTex.getSize().y);
+    museumBonesSpr.setPosition(startX, startY);
+
+    // Tooth (верх-право) - сдвигаем правее
+    museumToothSpr.setTexture(museumToothTex);
+    museumToothSpr.setScale(itemSize / museumToothTex.getSize().x,
+        itemSize / museumToothTex.getSize().y);
+    museumToothSpr.setPosition(startX + itemSize + horizontalSpacing , startY);
+
+    // Unicorn (низ-лево) - сдвигаем ближе к верхнему ряду
+    museumUnicornSpr.setTexture(museumUnicornTex);
+    museumUnicornSpr.setScale(itemSize / museumUnicornTex.getSize().x,
+        itemSize / museumUnicornTex.getSize().y);
+    museumUnicornSpr.setPosition(startX, startY + itemSize + verticalSpacing);
+
+    // Plant (низ-право) - сдвигаем правее и ближе к верхнему ряду
+    museumPlantSpr.setTexture(museumPlantTex);
+    museumPlantSpr.setScale(itemSize / museumPlantTex.getSize().x,
+        itemSize / museumPlantTex.getSize().y);
+    museumPlantSpr.setPosition(startX + itemSize + horizontalSpacing,
+        startY + itemSize + verticalSpacing);
+
+    // Question mark (общий)
+    museumQuestionSpr.setTexture(museumQuestionTex);
+    museumQuestionSpr.setScale(itemSize / museumQuestionTex.getSize().x,
+        itemSize / museumQuestionTex.getSize().y);
+}
+
 void Game::initScreens() {
     screens.resize(6);
     const float windowWidth = 1920.f;  // Обновлено
@@ -326,7 +394,7 @@ void Game::resetDigSites(int screen) {
 }
 
 void Game::handleDigging() {
-    // Проверка базовых условий
+    
     if (currentScreen < 3 || currentScreen > 5) return; // Только на экранах раскопок
     if (hunger <= 0) return; // Нельзя копать без сил
     if (digClock.getElapsedTime().asSeconds() < digCooldown) return; // Кулдаун
@@ -379,9 +447,9 @@ void Game::handleDigging() {
 
     // Обработка инструментов
     bool digAttemptMade = false;
-    const int BRUSH_CHANCE = 70;    // 70% успеха
-    const int SHOVEL_CHANCE = 50;   // 50% успеха
-    const int PICKAXE_CHANCE = 30;  // 30% успеха
+    const int BRUSH_CHANCE = 70;  
+    const int SHOVEL_CHANCE = 70;
+    const int PICKAXE_CHANCE = 60;
 
     if (ePressed && tools.brushDurability > 0) {
         // Кисточка - не ломает лут при неудаче
@@ -430,6 +498,150 @@ void Game::handleDigging() {
     if (digAttemptMade) {
         digClock.restart(); // Сбрасываем кулдаун
     }
+
+    if (targetLoot && targetLoot->getIsDug() && !targetLoot->getWasCounted()) {
+        if (targetLoot->getType() != LootType::NOTHING) {
+            updateFossils(1);
+
+            // Обновляем счетчики для музея
+            switch (targetLoot->getType()) {
+            case LootType::BONES: bonesCount++; break;
+            case LootType::TOOTH: toothCount++; break;
+            case LootType::UNICORN: unicornCount++; break;
+            case LootType::PLANT: plantCount++; break;
+            default: break;
+            }
+        }
+        targetLoot->setWasCounted(true);
+    }
+}
+
+void Game::drawMuseumItems() {
+    // Счетчики для каждого типа лута (нужно добавить эти переменные в Game.h)
+    static int bonesCount = 0;
+    static int toothCount = 0;
+    static int unicornCount = 0;
+    static int plantCount = 0;
+
+    // Получаем текущие позиции
+    const float bonesX = museumBonesSpr.getPosition().x;
+    const float bonesY = museumBonesSpr.getPosition().y;
+    const float toothX = museumToothSpr.getPosition().x;
+    const float toothY = museumToothSpr.getPosition().y;
+    const float unicornX = museumUnicornSpr.getPosition().x;
+    const float unicornY = museumUnicornSpr.getPosition().y;
+    const float plantX = museumPlantSpr.getPosition().x;
+    const float plantY = museumPlantSpr.getPosition().y;
+    const float itemSize = 200.0f;
+    const float textOffsetX = 30.0f; // Отступ текста от картинки по X
+    const float textOffsetY = 10.0f; // Отступ текста от картинки по Y
+
+    // Bones
+    if (bonesCount > 0) {
+        window->draw(museumBonesSpr);
+    }
+    else {
+        museumQuestionSpr.setPosition(bonesX, bonesY);
+        window->draw(museumQuestionSpr);
+    }
+
+    // Tooth
+    if (toothCount > 0) {
+        window->draw(museumToothSpr);
+    }
+    else {
+        museumQuestionSpr.setPosition(toothX, toothY);
+        window->draw(museumQuestionSpr);
+    }
+
+    // Unicorn
+    if (unicornCount > 0) {
+        window->draw(museumUnicornSpr);
+    }
+    else {
+        museumQuestionSpr.setPosition(unicornX, unicornY);
+        window->draw(museumQuestionSpr);
+    }
+
+    // Plant
+    if (plantCount > 0) {
+        window->draw(museumPlantSpr);
+    }
+    else {
+        museumQuestionSpr.setPosition(plantX, plantY);
+        window->draw(museumQuestionSpr);
+    }
+
+    // Отрисовка текста справа от картинок
+    sf::Font font;
+    if (!font.loadFromFile("C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/Arial.ttf")) {
+        font = sf::Font();
+    }
+
+    // Bones text (справа от картинки)
+    sf::Text bonesText;
+    bonesText.setFont(font);
+    bonesText.setString("Found: " + std::to_string(bonesCount) + "\nValue: $600");
+    bonesText.setCharacterSize(28);
+    bonesText.setFillColor(sf::Color::Black);
+    bonesText.setPosition(bonesX + itemSize + textOffsetX, bonesY + textOffsetY);
+    window->draw(bonesText);
+
+    // Tooth text (справа от картинки)
+    sf::Text toothText;
+    toothText.setFont(font);
+    toothText.setString("Found: " + std::to_string(toothCount) + "\nValue: $500");
+    toothText.setCharacterSize(28);
+    toothText.setFillColor(sf::Color::Black);
+    toothText.setPosition(toothX + itemSize + textOffsetX, toothY + textOffsetY);
+    window->draw(toothText);
+
+    // Unicorn text (справа от картинки)
+    sf::Text unicornText;
+    unicornText.setFont(font);
+    unicornText.setString("Found: " + std::to_string(unicornCount) + "\nValue: $700");
+    unicornText.setCharacterSize(28);
+    unicornText.setFillColor(sf::Color::Black);
+    unicornText.setPosition(unicornX + itemSize + textOffsetX, unicornY + textOffsetY);
+    window->draw(unicornText);
+
+    // Plant text (справа от картинки)
+    sf::Text plantText;
+    plantText.setFont(font);
+    plantText.setString("Found: " + std::to_string(plantCount) + "\nValue: $300");
+    plantText.setCharacterSize(28);
+    plantText.setFillColor(sf::Color::Black);
+    plantText.setPosition(plantX + itemSize + textOffsetX, plantY + textOffsetY);
+    window->draw(plantText);
+}
+
+void Game::handleMuseumItems() {
+    if (currentScreen != 2) return;
+
+    sf::Vector2f mousePos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
+    bool isMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
+
+    if (isMousePressed && !wasMousePressed) {
+        // Проверяем клик по каждому экспонату
+        if (museumBonesSpr.getGlobalBounds().contains(mousePos) && bonesCount > 0) {
+            updateMoney(600);
+            bonesCount--;
+        }
+        else if (museumToothSpr.getGlobalBounds().contains(mousePos) && toothCount > 0) {
+            updateMoney(500);
+            toothCount--;
+        }
+        else if (museumUnicornSpr.getGlobalBounds().contains(mousePos) && unicornCount > 0) {
+            updateMoney(700);
+            unicornCount--;
+        }
+        else if (museumPlantSpr.getGlobalBounds().contains(mousePos) && plantCount > 0) {
+            updateMoney(300);
+            plantCount--;
+        }
+    }
+
+    wasMousePressed = isMousePressed;
 }
 
 void Game::updateHunger(int change) {
@@ -509,6 +721,11 @@ void Game::update() {
     if (isShopScreen()) {
         handleShopItems();
     }
+
+    if (currentScreen == 2) {
+        handleMuseumItems();
+    }
+
     // Движение игрока работает везде
     else {
         // Обновление состояния раскопок только на экранах раскопок
@@ -575,6 +792,11 @@ void Game::render() {
         window->draw(buyPickaxeSpr);
         window->draw(buyEatSpr);
     }
+
+    else if (currentScreen == 2) {
+        drawMuseumItems();
+    }
+
 
     // Отрисовка лута (только на экранах раскопок)
     if (currentScreen >= 3 && currentScreen <= 5) {
@@ -698,7 +920,7 @@ void Game::changeScreen(int newScreen, sf::Vector2f newPosition) {
 
     inShopScreen = (newScreen == 1);
 
-    
+
 
     // Проверка стоимости перехода
     if (excavations.find(newScreen) != excavations.end()) {

@@ -27,7 +27,25 @@ struct ScreenHistory
 class Game
 {
 private:
-    
+
+    int bonesCount;
+    int toothCount;
+    int unicornCount;
+    int plantCount;
+
+    sf::Texture museumQuestionTex;
+    sf::Texture museumBonesTex;
+    sf::Texture museumToothTex;
+    sf::Texture museumUnicornTex;
+    sf::Texture museumPlantTex;
+
+    sf::Sprite museumBonesSpr;
+    sf::Sprite museumToothSpr;
+    sf::Sprite museumUnicornSpr;
+    sf::Sprite museumPlantSpr;
+    sf::Sprite museumQuestionSpr;
+    void initMuseumItems();
+
     bool wasMousePressed; // Добавьте это в private секцию
 
     struct {
@@ -135,6 +153,9 @@ private:
     void handleDigging();
     void resetDigSites(int screen);
     void renderUI();
+    void drawMuseumItems();
+    void handleMuseumItems();
+
 
 public:
     Game();

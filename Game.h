@@ -28,23 +28,30 @@ class Game
 {
 private:
 
+    int museumBonesPrice = 600;
+    int museumPlantPrice = 300;
+    int museumToothPrice = 400;
+    int museumUnicornPrice = 700;
+
+    sf::Texture museumBonesTex, museumPlantTex, museumToothTex, museumUnicornTex;
+    sf::Sprite museumBonesSpr, museumPlantSpr, museumToothSpr, museumUnicornSpr;
+
+    void initMuseumItems();
+    void handleMuseumItems();
+
     int bonesCount;
+    int plantCount;
     int toothCount;
     int unicornCount;
-    int plantCount;
 
-    sf::Texture museumQuestionTex;
-    sf::Texture museumBonesTex;
-    sf::Texture museumToothTex;
-    sf::Texture museumUnicornTex;
-    sf::Texture museumPlantTex;
-
-    sf::Sprite museumBonesSpr;
-    sf::Sprite museumToothSpr;
-    sf::Sprite museumUnicornSpr;
-    sf::Sprite museumPlantSpr;
-    sf::Sprite museumQuestionSpr;
-    void initMuseumItems();
+    UIText bonesText;
+    UIText plantText;
+    UIText toothText;
+    UIText unicornText;
+    void updateBonesCount(int change);
+    void updatePlantCount(int change);
+    void updateToothCount(int change);
+    void updateUnicornCount(int change);
 
     bool wasMousePressed; // Добавьте это в private секцию
 
@@ -153,9 +160,6 @@ private:
     void handleDigging();
     void resetDigSites(int screen);
     void renderUI();
-    void drawMuseumItems();
-    void handleMuseumItems();
-
 
 public:
     Game();

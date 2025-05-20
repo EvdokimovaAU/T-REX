@@ -303,11 +303,12 @@ void Game::initMuseumItems() {
         museumUnicornTex.loadFromImage(img);
     }
 
-    // Set up sprites
+    // Set up sprites with new spacing
     const float itemSize = 200.0f;
-    const float spacing = 100.0f;
-    const float startX = (1920 - (2 * itemSize + spacing)) / 2 - 200;
-    const float startY = (1080 - (2 * itemSize + spacing)) / 2 + 130;
+    const float horizontalSpacing = 250.0f; // Увеличено расстояние между столбцами
+    const float verticalSpacing = 50.0f;    // Уменьшено расстояние между строками
+    const float startX = (1920 - (2 * itemSize + horizontalSpacing)) / 2 - 110;
+    const float startY = (1080 - (2 * itemSize + verticalSpacing)) / 2 + 90;
 
     museumBonesSpr.setTexture(museumBonesTex);
     museumBonesSpr.setScale(itemSize / museumBonesTex.getSize().x, itemSize / museumBonesTex.getSize().y);
@@ -315,15 +316,15 @@ void Game::initMuseumItems() {
 
     museumPlantSpr.setTexture(museumPlantTex);
     museumPlantSpr.setScale(itemSize / museumPlantTex.getSize().x, itemSize / museumPlantTex.getSize().y);
-    museumPlantSpr.setPosition(startX + itemSize + spacing, startY);
+    museumPlantSpr.setPosition(startX + itemSize + horizontalSpacing, startY);
 
     museumToothSpr.setTexture(museumToothTex);
     museumToothSpr.setScale(itemSize / museumToothTex.getSize().x, itemSize / museumToothTex.getSize().y);
-    museumToothSpr.setPosition(startX, startY + itemSize + spacing);
+    museumToothSpr.setPosition(startX, startY + itemSize + verticalSpacing);
 
     museumUnicornSpr.setTexture(museumUnicornTex);
     museumUnicornSpr.setScale(itemSize / museumUnicornTex.getSize().x, itemSize / museumUnicornTex.getSize().y);
-    museumUnicornSpr.setPosition(startX + itemSize + spacing, startY + itemSize + spacing);
+    museumUnicornSpr.setPosition(startX + itemSize + horizontalSpacing, startY + itemSize + verticalSpacing);
 }
 
 void Game::resetDigSites(int screen) {
@@ -430,9 +431,9 @@ void Game::handleDigging() {
 
     // Обработка инструментов
     bool digAttemptMade = false;
-    const int BRUSH_CHANCE = 70;    // 70% успеха
-    const int SHOVEL_CHANCE = 50;   // 50% успеха
-    const int PICKAXE_CHANCE = 30;  // 30% успеха
+    const int BRUSH_CHANCE = 80;    // 70% успеха
+    const int SHOVEL_CHANCE = 70;   // 50% успеха
+    const int PICKAXE_CHANCE = 50;  // 30% успеха
 
     if (ePressed && tools.brushDurability > 0) {
         // Кисточка - не ломает лут при неудаче
@@ -484,7 +485,7 @@ void Game::handleDigging() {
 }
 
 void Game::handleMuseumItems() {
-    if (currentScreen != 2) return; // Only in museum screen
+    if (currentScreen != 2) return;
 
     sf::Vector2f mousePos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
     bool isMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
@@ -494,8 +495,8 @@ void Game::handleMuseumItems() {
             if (bonesCount > 0) {
                 bonesCount--;
                 money += museumBonesPrice;
-                updateBonesCount(0); // Refresh display
-                updateMoney(0); // Refresh display
+                updateBonesCount(0);
+                updateMoney(0);
             }
         }
         else if (museumPlantSpr.getGlobalBounds().contains(mousePos)) {
@@ -753,14 +754,41 @@ void Game::render() {
         window->draw(museumToothSpr);
         window->draw(museumUnicornSpr);
 
-        // Draw prices and counts
-        UIText bonesPriceText("$" + std::to_string(museumBonesPrice), 24, sf::Color::White,
-            museumBonesSpr.getPosition().x + 10, museumBonesSpr.getPosition().y + 180);
+        // Bones - top left
+        UIText bonesPriceText("Cost: $" + std::to_string(museumBonesPrice) + "\nRare item", 24, sf::Color::Black,
+            museumBonesSpr.getPosition().x + itemSize + 10, museumBonesSpr.getPosition().y);
         bonesPriceText.draw(*window);
 
-        UIText bonesCountText("x" + std::to_string(bonesCount), 24, sf::Color::White,
-            museumBonesSpr.getPosition().x + 150, museumBonesSpr.getPosition().y + 180);
+        UIText bonesCountText("x" + std::to_string(bonesCount), 36, sf::Color::Yellow,
+            museumBonesSpr.getPosition().x + itemSize - 30, museumBonesSpr.getPosition().y + itemSize - 40);
         bonesCountText.draw(*window);
+
+        // Plant - top right
+        UIText plantPriceText("Cost: $" + std::to_string(museumPlantPrice) + "\nCommon item", 24, sf::Color::Black,
+            museumPlantSpr.getPosition().x + itemSize + 10, museumPlantSpr.getPosition().y);
+        plantPriceText.draw(*window);
+
+        UIText plantCountText("x" + std::to_string(plantCount), 36, sf::Color::Yellow,
+            museumPlantSpr.getPosition().x + itemSize - 30, museumPlantSpr.getPosition().y + itemSize - 40);
+        plantCountText.draw(*window);
+
+        // Tooth - bottom left
+        UIText toothPriceText("Cost: $" + std::to_string(museumToothPrice) + "\nUncommon item", 24, sf::Color::Black,
+            museumToothSpr.getPosition().x + itemSize + 10, museumToothSpr.getPosition().y);
+        toothPriceText.draw(*window);
+
+        UIText toothCountText("x" + std::to_string(toothCount), 36, sf::Color::Yellow,
+            museumToothSpr.getPosition().x + itemSize - 30, museumToothSpr.getPosition().y + itemSize - 40);
+        toothCountText.draw(*window);
+
+        // Unicorn - bottom right
+        UIText unicornPriceText("Cost: $" + std::to_string(museumUnicornPrice) + "\nLegendary item", 24, sf::Color::Black,
+            museumUnicornSpr.getPosition().x + itemSize + 10, museumUnicornSpr.getPosition().y);
+        unicornPriceText.draw(*window);
+
+        UIText unicornCountText("x" + std::to_string(unicornCount), 36, sf::Color::Yellow,
+            museumUnicornSpr.getPosition().x + itemSize - 30, museumUnicornSpr.getPosition().y + itemSize - 40);
+        unicornCountText.draw(*window);
     }
 
     window->display();

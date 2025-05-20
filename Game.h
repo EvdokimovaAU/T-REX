@@ -27,7 +27,7 @@ struct ScreenHistory
 class Game
 {
 private:
-
+    const float itemSize = 200.0f;
     int museumBonesPrice = 600;
     int museumPlantPrice = 300;
     int museumToothPrice = 400;

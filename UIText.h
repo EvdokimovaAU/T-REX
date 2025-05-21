@@ -2,14 +2,17 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 
-class UIText {
+class UIText 
+{
 private:
     sf::Text text;
     sf::Font font;
-    std::string defaultFontPath = "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/Arial.ttf"; // Simplified path, place the font in your executable directory
+    std::string defaultFontPath = "C:/Users/admin/Desktop/ДИНОЗАВР/ДИНОЗАВР/x64/Debug/textures/Arial.ttf"; 
 
 public:
     UIText();
+
+    // конструктор с параметрами
     UIText(const std::string& content, unsigned int size, const sf::Color& color, float posX, float posY);
 
     void setContent(const std::string& content);
@@ -18,5 +21,5 @@ public:
     void setSize(unsigned int size);
 
     void draw(sf::RenderWindow& window) const;
-    sf::FloatRect getBounds() const;
+    sf::FloatRect getBounds() const; // получение ограничивающего прямоугольника текста
 };

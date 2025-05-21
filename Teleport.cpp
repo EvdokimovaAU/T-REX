@@ -14,7 +14,6 @@ sf::FloatRect Teleport::getZoneRect() const {
 	return zoneRect;
 }
 
-
 sf::Vector2f Teleport::getTargetPosition() const
 {
 	return targetPosition;

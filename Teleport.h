@@ -13,19 +13,19 @@ using std::vector;
 class Teleport
 {
 private:
-	sf::FloatRect zoneRect;
-	sf::Vector2f targetPosition;
-	int targetScreen;
+	sf::FloatRect zoneRect; 
+	sf::Vector2f targetPosition; 
+	int targetScreen; 
 
 public:
+	
 	Teleport(sf::FloatRect rect, sf::Vector2f targetPos, int screen);
 
-
+	// playerBounds - ограничивающий прямоугольник игрока
 	bool checkCollision(const sf::FloatRect& playerBounds) const;
-
 
 	sf::Vector2f getTargetPosition() const;
 	int getTargetScreen() const;
-	sf::FloatRect getZoneRect() const;
+	sf::FloatRect getZoneRect() const; // зона телепортации
 
 };

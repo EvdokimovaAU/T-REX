@@ -10,24 +10,25 @@ Loot::Loot(const sf::Texture& buriedTexture,
     diggingTime(0.f), requiredDiggingTime(1.5f),
     type(lootType), biome(biomeType), wasCounted(false)
 {
-    // »нициализаци€ спрайтов
+    // инициализаци€ спрайтов
     buriedSprite.setTexture(buriedTexture);
     dugOutSprite.setTexture(dugOutTexture);
     brokenSprite.setTexture(brokenTexture);
 
-    // »спользуем текстуру закопанного дл€ состо€ни€ копани€, но делаем темнее
+    // используем текстуру закопанного дл€ состо€ни€ копани€, но делаем темнее
     diggingSprite.setTexture(buriedTexture);
     diggingSprite.setColor(sf::Color(150, 150, 150));
 
-    // ”становка масштаба дл€ всех спрайтов
+    // установка масштаба дл€ всех спрайтов
     float scale = 0.5f;
     buriedSprite.setScale(scale, scale);
     dugOutSprite.setScale(scale, scale);
     diggingSprite.setScale(scale, scale);
     brokenSprite.setScale(scale, scale);
 
-    // ÷ентрирование и позиционирование спрайтов
-    auto centerSprite = [](sf::Sprite& sprite) {
+    // центрирование и позиционирование спрайтов
+    auto centerSprite = [](sf::Sprite& sprite) 
+        {
         sf::FloatRect bounds = sprite.getLocalBounds();
         sprite.setOrigin(bounds.width / 2, bounds.height / 2);
         };
@@ -148,7 +149,7 @@ void Loot::startDigging() {
         isDug = false;
         isBroken = false;
         diggingTime = 0.f;
-        // ќбновл€ем текстуру дл€ состо€ни€ копани€
+        // обновл€ем текстуру дл€ состо€ни€ копани€
         diggingSprite.setColor(sf::Color(150, 150, 150));
     }
 }

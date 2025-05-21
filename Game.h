@@ -14,105 +14,46 @@
 #include <algorithm>
 #include <memory>
 #include <unordered_map>
+#include <fstream>
 
 using std::vector;
 using std::string;
 
+// история переходов между экранами
 struct ScreenHistory
 {
     int screen;
     sf::Vector2f position;
 };
 
-class Game
+class Game 
 {
 private:
-    const float itemSize = 200.0f;
-    int museumBonesPrice = 600;
-    int museumPlantPrice = 300;
-    int museumToothPrice = 400;
-    int museumUnicornPrice = 700;
 
-    sf::Texture museumBonesTex, museumPlantTex, museumToothTex, museumUnicornTex;
-    sf::Sprite museumBonesSpr, museumPlantSpr, museumToothSpr, museumUnicornSpr;
-
-    void initMuseumItems();
-    void handleMuseumItems();
-
-    int bonesCount;
-    int plantCount;
-    int toothCount;
-    int unicornCount;
-
-    UIText bonesText;
-    UIText plantText;
-    UIText toothText;
-    UIText unicornText;
-    void updateBonesCount(int change);
-    void updatePlantCount(int change);
-    void updateToothCount(int change);
-    void updateUnicornCount(int change);
-
-    bool wasMousePressed; // Добавьте это в private секцию
-
-    struct {
-        int brushDurability = 5;
-        int shovelDurability = 10;
-        int pickaxeDurability = 10;
-    } tools;
-
-    sf::Texture brokenLootTexture;
-    sf::Texture diggingTexture;
-
-    bool isPlayerDead; // Флаг смерти игрока
-    sf::Clock deathTimer; // Таймер перед перезапуском
-    const float deathDelay = 3.0f; // Задержка перед перезапуском
-
-    void resetGame(); // Метод для сброса игры
-    void checkPlayerDeath(); // Проверка состояния игрока
-    bool isShopScreen() const { return currentScreen == 1; }
-    // Анимации инструментов
-    DigAnimation brushAnimation;   // Кисть (E)
-    DigAnimation shovelAnimation; // Лопата (R)
-    DigAnimation pickaxeAnimation; // Кирка (T)
-
-    // Игровые состояния
-    enum class Tool { BRUSH, SHOVEL, PICKAXE, NONE };
-    Tool currentTool;
-
-    // Основные компоненты
+    // Системные
     sf::RenderWindow* window;
     sf::Event event;
     sf::VideoMode videoMode;
+    const std::string SAVE_FILE = "save.txt";
 
-    // Графика
-    vector<sf::Texture> backgroundTextures;
-    vector<sf::Sprite> backgroundSprites;
-    sf::Texture playerTexture;
-    sf::Sprite playerSprite;
+    // Состояние игры
+    bool isPlayerDead;
+    bool canUsePortal;
+    bool showMoneyWarning;
+    bool wasMousePressed;
+    bool wasMouseClicked;
+    bool inShopScreen;
 
-    // Игровые системы
-    vector<vector<Teleport>> screens;
-    vector<ScreenHistory> previousPositions;
-    vector<vector<Loot>> digSites;
+    // Таймеры
+    sf::Clock clock;
+    sf::Clock portalClock;
+    sf::Clock moneyWarningClock;
+    sf::Clock digClock;
+    sf::Clock deathTimer;
+    const float digCooldown = 0.3f;
+    const float deathDelay = 3.0f;
 
-    // Текстуры
-    sf::Texture buriedTextures[3];
-    sf::Texture dugOutTextures[5];
-
-    // Система раскопок
-    std::unique_ptr<Excavation> currentExcavation;
-    std::unordered_map<int, std::unique_ptr<Excavation>> excavations;
-
-    // UI элементы
-    UIText hungerText;
-    UIText moneyText;
-    UIText fossilsText;
-    UIText suppliesText;
-    UIText excavatedText;
-    UIText moneyWarningText;
-
-    // Игровые переменные
+    // Игровые параметры
     int hunger;
     int money;
     int fossils;
@@ -120,30 +61,72 @@ private:
     float moveSpeed;
     int currentScreen;
 
-    // Флаги состояния
-    bool canUsePortal;
-    bool showMoneyWarning;
+    // Инструменты
+    struct 
+    {
+        int brushDurability = 5;
+        int shovelDurability = 10;
+        int pickaxeDurability = 10;
+    } tools;
 
-    sf::Clock digClock;
-    const float digCooldown = 0.3f;
-    // Таймеры
-    sf::Clock clock;
-    sf::Clock portalClock;
-    sf::Clock moneyWarningClock;
+    enum class Tool { BRUSH, SHOVEL, PICKAXE, NONE };
+    Tool currentTool;
 
-    // Шрифты
+    // Инвентарь
+    int bonesCount;
+    int plantCount;
+    int toothCount;
+    int unicornCount;
+    const float itemSize = 200.0f;
+
+    // Музейные цены
+    int museumBonesPrice = 600;
+    int museumPlantPrice = 300;
+    int museumToothPrice = 400;
+    int museumUnicornPrice = 700;
+
+    // Текстуры
+    sf::Texture brokenLootTexture;
+    sf::Texture diggingTexture;
+    sf::Texture museumBonesTex, museumPlantTex, museumToothTex, museumUnicornTex;
+    sf::Texture buyBrushTex, buyShovelTex, buyPickaxeTex, buyEatTex;
+    sf::Texture buriedTextures[3];
+    sf::Texture dugOutTextures[5];
+    sf::Texture playerTexture;
+    vector<sf::Texture> backgroundTextures;
+
+    // Спрайты
+    sf::Sprite museumBonesSpr, museumPlantSpr, museumToothSpr, museumUnicornSpr;
+    sf::Sprite buyBrushSpr, buyShovelSpr, buyPickaxeSpr, buyEatSpr;
+    sf::Sprite playerSprite;
+    vector<sf::Sprite> backgroundSprites;
+
+    // Анимации
+    DigAnimation brushAnimation;
+    DigAnimation shovelAnimation;
+    DigAnimation pickaxeAnimation;
+
+    // UI элементы
+    UIText bonesText;
+    UIText plantText;
+    UIText toothText;
+    UIText unicornText;
+    UIText hungerText;
+    UIText moneyText;
+    UIText fossilsText;
+    UIText suppliesText;
+    UIText excavatedText;
+    UIText moneyWarningText;
     sf::Font debugFont;
 
-    // Текстуры и спрайты для магазина
-    sf::Texture buyBrushTex, buyShovelTex, buyPickaxeTex, buyEatTex;
-    sf::Sprite buyBrushSpr, buyShovelSpr, buyPickaxeSpr, buyEatSpr;
+    // Игровые системы
+    vector<vector<Teleport>> screens;
+    vector<ScreenHistory> previousPositions;
+    vector<vector<Loot>> digSites;
+    std::unique_ptr<Excavation> currentExcavation;
+    std::unordered_map<int, std::unique_ptr<Excavation>> excavations;
 
-    bool wasMouseClicked; // Флаг для отслеживания клика
-    bool inShopScreen; // Добавляем флаг для отслеживания магазина
-
-    // Метод для обработки магазина
-    void handleShopItems();
-    void initShopItems();
+    // Инициализация
     void initVariables();
     void initWindow();
     void initPlayer();
@@ -153,38 +136,84 @@ private:
     void initDigSites();
     void initAnimations();
     void initExcavations();
+    void initShopItems();
+    void initMuseumItems();
+
+    // Обновление состояния
     void updateHunger(int change);
     void updateMoney(int change);
     void updateFossils(int change);
     void updateSupplies(int change);
+    void updateBonesCount(int change);
+    void updatePlantCount(int change);
+    void updateToothCount(int change);
+    void updateUnicornCount(int change);
+
+    // Логика игры
     void handleDigging();
+    void handleShopItems();
+    void handleMuseumItems();
     void resetDigSites(int screen);
+    void checkPlayerDeath();
+    void resetGame();
+
+    // Вспомогательные
+    bool isShopScreen() const { return currentScreen == 1; }
     void renderUI();
+    void saveGame();
+    void loadGame();
 
 public:
+   
+    // Конструктор и Деструктор
     Game();
     virtual ~Game();
 
-    static Game& instance() {
-        static Game instance;
-        return instance;
-    }
-
-    int getSupplies() const { return supplies; }
-    void updateMoveSpeed(float modifier) { moveSpeed *= modifier; }
-
+    // Управление игрой
+    static Game& instance();
     const bool running() const;
-    int countDugLoots();
     void pollEvents();
     void update();
     void render();
-    string getLocationName(int screenIndex) const;
-    void changeScreen(int newScreen, sf::Vector2f newPosition);
 
+    
+    // Работа с экранами
+    void changeScreen(int newScreen, sf::Vector2f newPosition);
+    string getLocationName(int screenIndex) const;
+
+    
+    // Работа с инвентарем
+    int getSupplies() const;
+    int getSuppliesCount() const;
+    int countDugLoots();
+
+    
+    // Изменение состояния
     void applyHungerEffect(int amount);
     void applySuppliesEffect(int amount);
     void applySpeedModifier(float modifier);
-    int getSuppliesCount() const;
-    const sf::Texture& getDiggingTexture() const { return diggingTexture; }
+    void updateMoveSpeed(float modifier);
 
+    
+    // Доступ к ресурсам
+    const sf::Texture& getDiggingTexture() const;
 };
+
+
+
+inline Game& Game::instance() {
+    static Game instance;
+    return instance;
+}
+
+inline int Game::getSupplies() const {
+    return supplies;
+}
+
+inline void Game::updateMoveSpeed(float modifier) {
+    moveSpeed *= modifier;
+}
+
+inline const sf::Texture& Game::getDiggingTexture() const {
+    return diggingTexture;
+}

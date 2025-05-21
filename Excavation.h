@@ -7,7 +7,8 @@
 // Предварительное объявление
 class Game;
 
-class Excavation {
+class Excavation 
+{
 protected:
     std::vector<LootType> possibleLootTypes;
     Game* game;
@@ -22,7 +23,8 @@ public:
     virtual std::string getName() const = 0;
 };
 
-class DesertExcavation : public Excavation {
+class DesertExcavation : public Excavation 
+{
 public:
     explicit DesertExcavation(Game* game);
     LootType generateLoot() override;
@@ -31,7 +33,8 @@ public:
     std::string getName() const override;
 };
 
-class JungleExcavation : public Excavation {
+class JungleExcavation : public Excavation 
+{
 public:
     explicit JungleExcavation(Game* game);
     LootType generateLoot() override;
@@ -40,7 +43,8 @@ public:
     std::string getName() const override;
 };
 
-class ArcticaExcavation : public Excavation {
+class ArcticaExcavation : public Excavation 
+{
 public:
     explicit ArcticaExcavation(Game* game);
     LootType generateLoot() override;

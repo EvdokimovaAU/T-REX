@@ -1,13 +1,17 @@
 
 <div align="center">
 
-# RED ICE
+# T-REX
 
-### A Choice-Driven Console Strategy Game
+### My First Game
 
-**C++ · JSON · Console Application · Resource Management**
+**C++ · SFML · 2D · Solo Development**
 
-*Every decision has consequences.*
+*Explore different biomes, uncover ancient treasures and manage your resources.*
+
+---
+
+**My first independently developed game, created entirely in C++ using the SFML library.**
 
 </div>
 
@@ -15,140 +19,166 @@
 
 ## About the Game
 
-**Red Ice** is a text-based console strategy game developed in C++.
+**T-REX** is a 2D excavation game and my very first game development project.
 
-The player takes on the role of a cartel leader who must maintain their influence, manage available resources and make strategic decisions while dealing with rival criminal organizations.
+The player takes on the role of an explorer searching for fossils and other discoveries across different environments.
 
-Throughout the game, players encounter different scenarios requiring them to choose between alternative approaches, evaluate risks and consider the consequences of their actions.
+To progress, the player must explore excavation sites, use digging tools, collect valuable items and manage limited resources.
 
-The game combines branching narrative elements with resource management, combat encounters and progression across multiple levels.
+Discovered objects can be sold at the museum to earn money, which can then be spent on supplies and equipment.
+
+The project was developed independently, from implementing the core mechanics to connecting the individual gameplay systems.
 
 ---
 
-## Core Gameplay
+## Gameplay Features
 
-### 01. Decision-Making
+### 01. Exploration & Biomes
 
-The player encounters different situations and selects how to respond.
+The game features three different excavation environments:
 
-Available choices can affect the outcome of an encounter, available resources and further progression.
+- Desert
+- Jungle
+- Arctic
 
-### 02. Resource Management
+Each environment has its own excavation implementation and can affect the player's experience.
 
-The player must keep track of several parameters:
+### 02. Excavation System
 
-- Cartel influence.
-- Cartel strength / HP.
-- Money.
-- Available weapons and ammunition.
+Players can excavate buried objects using different digging tools.
 
-Managing these resources is an important part of progressing through the game.
+The system includes:
 
-### 03. Combat System
+- Excavation sites.
+- Different collectible items.
+- Digging progress.
+- Object states, including buried, excavated and broken.
+- Tool-specific digging animations.
 
-The game features encounters with opposing groups.
+### 03. Digging Tools
 
-Enemy health and received damage are handled through a dedicated enemy system.
+Three tools are available:
 
-Different equipment types are represented within the combat mechanics.
+- Brush
+- Shovel
+- Pickaxe
 
-### 04. Shop and Equipment
+Each tool has its own durability, introducing an additional resource-management element.
 
-Players can purchase equipment using their available money.
+### 04. Collectibles & Inventory
 
-The shop includes:
+The game features several collectible item types:
 
-- Ammunition.
-- Grenades.
-- RPG ammunition.
+- Bones
+- Plants
+- Teeth
+- Unicorn-related discoveries
 
-Some equipment becomes available only after reaching specific levels.
+Collected items are tracked through the player's inventory.
 
-### 05. Level Progression
+### 05. Museum & Economy
 
-The game is organized into five levels, managed through a dedicated GameManager.
+Players can sell collected discoveries at the museum.
 
-The player's decisions and available resources influence their ability to continue.
+Different collectible types have different values.
+
+Money can then be used to purchase supplies and equipment in the shop.
+
+### 06. Survival Elements
+
+The player must manage hunger alongside their available money and supplies.
+
+These mechanics connect exploration with the game's economy and progression.
+
+### 07. Save System
+
+The project includes functionality for saving and loading game progress using a local text file.
 
 ---
 
 ## Technical Implementation
 
-The project was developed using C++, with gameplay logic divided into separate classes.
+The game was programmed independently in C++ using SFML.
 
-### Main Components
+Its functionality is divided into several classes responsible for individual gameplay systems.
 
-| Component | Responsibility |
+| Class | Responsibility |
 |---|---|
-| `GameManager` | Level progression and game flow |
-| `PlayerController` | Player statistics and resources |
-| `Enemies` | Enemy health and damage handling |
-| `Shop` | Equipment purchasing |
-| `Level_1` – `Level_5` | Individual level scenarios |
-| `Text` | Loading and accessing text content |
-| `texts.json` | Dialogue and narrative data |
+| `Game` | Main game loop and gameplay management |
+| `Excavation` | Excavation mechanics and biome-specific logic |
+| `Loot` | Collectible objects and excavation states |
+| `DigAnimation` | Frame-based digging animations |
+| `Teleport` | Transitions between game areas |
+| `UIText` | Text rendering and interface elements |
 
-### JSON-Based Narrative Content
+### Object-Oriented Design
 
-The game's text content is stored separately from the main C++ gameplay logic.
+Different excavation environments inherit from a common `Excavation` base class.
 
-The `texts.json` file contains dialogue, player-facing messages, shop descriptions and level-related narrative content.
+The project includes separate implementations for the desert, jungle and Arctic environments.
 
-This approach separates textual data from program logic and makes it easier to edit the game's narrative without modifying the corresponding C++ strings.
+### Game State Management
+
+The main game system manages:
+
+- Player statistics.
+- Money and hunger.
+- Available supplies.
+- Tool durability.
+- Inventory contents.
+- Current game screen.
+- Saving and loading progress.
 
 ---
 
 ## Project Structure
 
 ```text
-Red-Ice/
+T-REX/
 │
-└── TestRedIce/
-    │
-    ├── TestRedIce.sln
-    │
-    └── TestRedIce/
-        │
-        ├── TestRedIce.cpp
-        │
-        ├── GameManager.cpp / .h
-        ├── PlayerController.cpp / .h
-        ├── Enemies.cpp / .h
-        ├── Shop.cpp / .h
-        ├── Text.cpp / .h
-        │
-        ├── Level_1.cpp / .h
-        ├── Level_2.cpp / .h
-        ├── Level_3.cpp / .h
-        ├── Level_4.cpp / .h
-        ├── Level_5.cpp / .h
-        │
-        └── texts.json
+├── ДИНОЗАВР.cpp
+│
+├── Game.cpp
+├── Game.h
+│
+├── Excavation.cpp
+├── Excavation.h
+│
+├── Loot.cpp
+├── Loot.h
+│
+├── DigAnimation.cpp
+├── DigAnimation.h
+│
+├── Teleport.cpp
+├── Teleport.h
+│
+├── UIText.cpp
+├── UIText.h
+│
+└── save.txt
 ```
 
 ---
 
 ## Technologies
 
-| Technology | Purpose |
+| Technology | Application |
 |---|---|
-| C++ | Gameplay programming |
-| JSON | Narrative and text storage |
-| Visual Studio | Development environment |
-| Windows Console | User interaction and output |
+| C++ | Core gameplay programming |
+| SFML | Graphics, window management and input |
+| OOP | Game system architecture |
+| File I/O | Saving and loading game progress |
 
 ---
 
-## How to Run
+## Development Experience
 
-1. Clone or download the repository.
-2. Open `TestRedIce/TestRedIce.sln` in Visual Studio.
-3. Restore the project's dependencies if prompted.
-4. Build the solution.
-5. Make sure `texts.json` is located in the executable's working directory.
-6. Run the console application.
+T-REX was my first experience developing a game independently.
 
-The project uses Windows console functions to configure UTF-8 input and output.
+Working on this project helped me understand how separate gameplay mechanics interact and how to organize a game without relying on a full-featured game engine.
+
+It was an important starting point for my subsequent work with Unity, Unreal Engine and more complex gameplay systems.
 
 ---
 
@@ -156,74 +186,89 @@ The project uses Windows console functions to configure UTF-8 input and output.
 
 ## О проекте
 
-**Red Ice** — текстовая консольная стратегическая игра, написанная на C++.
+**T-REX — мой самый первый игровой проект, полностью самостоятельно разработанный на C++ с использованием библиотеки SFML.**
 
-Игрок принимает на себя роль главы картеля, которому предстоит управлять ресурсами своей организации, поддерживать влияние, противостоять конкурирующим группировкам и принимать решения в различных сюжетных ситуациях.
+Это двухмерная игра, посвящённая исследованию различных территорий и поиску древних находок.
 
-Игровой процесс строится вокруг выбора стратегии и последствий принятых решений.
+Игроку предстоит посещать раскопки, находить ценные предметы, следить за состоянием инструментов, управлять ограниченными ресурсами и продавать обнаруженные находки в музее.
 
-## Основные механики
+Заработанные деньги можно потратить на покупку необходимых припасов и оборудования.
 
-### Система выбора
+## Основные игровые механики
 
-Игроку предлагаются различные варианты действий, влияющие на развитие событий и исход игровых ситуаций.
+### Исследование территорий
 
-### Управление ресурсами
+В игре предусмотрены три типа локаций:
 
-В игре реализованы:
+- Пустыня.
+- Джунгли.
+- Арктика.
 
-- Влияние картеля.
-- Сила организации (HP).
-- Денежные средства.
-- Инвентарь с оружием и боеприпасами.
+Для каждой территории предусмотрена отдельная реализация системы раскопок.
 
-### Боевая система
+### Система раскопок
 
-Противники обладают запасом здоровья и получают урон в зависимости от используемого снаряжения и игровых действий.
+Игрок взаимодействует с закопанными объектами, используя различные инструменты.
 
-### Магазин
+Реализованы состояния предметов, процесс раскопки и соответствующие анимации.
 
-Игрок может приобретать боеприпасы и дополнительное вооружение.
+### Инструменты
 
-Часть товаров становится доступной по мере прохождения уровней.
+В игре присутствуют:
 
-### Система уровней
+- Кисточка.
+- Лопата.
+- Кирка.
 
-Игра содержит пять уровней, управление переходами между которыми реализовано через `GameManager`.
+Инструменты имеют ограниченную прочность.
 
----
+### Инвентарь
 
-## Архитектура проекта
+Реализована система сбора и хранения найденных объектов, включая кости, растения, зубы и другие находки.
 
-Логика игры разделена между несколькими классами:
+### Экономика
 
-- `GameManager` — управление игровым процессом и уровнями.
-- `PlayerController` — характеристики игрока и управление ресурсами.
-- `Enemies` — логика здоровья и получения урона противниками.
-- `Shop` — система магазина.
-- `Level_1` – `Level_5` — отдельные игровые сценарии.
-- `Text` — работа с текстовыми данными.
+Игрок может продавать находки в музее, получать деньги и покупать необходимые предметы в магазине.
 
-### Использование JSON
+### Элементы выживания
 
-Текстовое наполнение игры вынесено в отдельный файл `texts.json`.
+Реализованы показатели голода, денежных средств и доступных припасов.
 
-В нём хранятся диалоги, сообщения, описания и сюжетные события.
+### Система сохранений
 
-Такое разделение позволяет изменять текстовую составляющую отдельно от основной логики на C++.
+Предусмотрена возможность сохранения и загрузки игрового прогресса через текстовый файл.
 
 ---
 
-## Цель разработки
+## Техническая реализация
 
-Практическое применение C++ для создания игры с несколькими взаимосвязанными системами.
+**Язык:** C++  
+**Библиотека:** SFML  
+**Тип разработки:** Индивидуальный проект
 
-В рамках проекта реализованы управление игровым состоянием, обработка пользовательского выбора, система ресурсов, взаимодействие с противниками и загрузка текстовых данных из JSON.
+В рамках разработки самостоятельно реализовала:
+
+- Основной игровой цикл.
+- Обработку пользовательского ввода.
+- Перемещение игрока.
+- Систему переходов между игровыми экранами.
+- Механики раскопок.
+- Работу с игровыми объектами.
+- Покадровые анимации инструментов.
+- Инвентарь и экономику.
+- Управление игровыми ресурсами.
+- Сохранение и загрузку прогресса.
+
+## Значение проекта
+
+T-REX стал моей отправной точкой в разработке игр.
+
+Именно в процессе его создания я получила первый практический опыт организации игровых систем, объектно-ориентированного программирования и разработки полноценного игрового процесса на C++ без использования готового игрового движка.
 
 ---
 
 <div align="center">
 
-**C++ · Game Logic · Narrative Systems · Resource Management**
+**My First Game · My Starting Point in Game Development**
 
 </div>
